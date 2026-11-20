@@ -1,0 +1,26 @@
+{
+  "observed_after": "BlueGuard v0.4.2-lab rollout",
+  "source": "AWS CLI describe-traffic-mirror-sessions and describe-instances, plus instance-stopped waiter",
+  "observation_type": "reported terminal output",
+  "exact_utc_timestamp": "not recorded",
+  "traffic_mirror_sessions": 0,
+  "instances": [
+    {
+      "role": "control-plane",
+      "observed_state": "stopped"
+    },
+    {
+      "role": "worker",
+      "observed_state": "stopped"
+    },
+    {
+      "role": "zeek",
+      "observed_state": "stopped"
+    },
+    {
+      "role": "wazuh",
+      "observed_state": "stopped"
+    }
+  ],
+  "note": "Not a live AWS status query; resources may have changed after this observation."
+}

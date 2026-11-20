@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "snapshotDate": "2026-11-16",
+  "profile": "YOUR_AWS_PROFILE",
+  "region": "eu-south-1",
+  "expectedAccountId": "REPLACE_12_DIGIT_ACCOUNT_ID",
+  "vpcId": "REPLACE_VPC_ID",
+  "subnetId": "REPLACE_SUBNET_ID",
+  "ssh": {
+    "user": "ubuntu",
+    "privateKeyRelativeToHome": ".ssh/blueguard-lab",
+    "keyPairName": "REPLACE_KEY_PAIR_NAME"
+  },
+  "nodes": [
+    {
+      "role": "control-plane",
+      "instanceId": "REPLACE_CONTROL_PLANE_INSTANCEID",
+      "privateIp": "10.20.1.10",
+      "eniId": "REPLACE_CONTROL_PLANE_ENIID",
+      "securityGroupId": "REPLACE_CONTROL_PLANE_SECURITYGROUPID"
+    },
+    {
+      "role": "worker",
+      "instanceId": "REPLACE_WORKER_INSTANCEID",
+      "privateIp": "10.20.1.11",
+      "eniId": "REPLACE_WORKER_ENIID",
+      "securityGroupId": "REPLACE_WORKER_SECURITYGROUPID"
+    },
+    {
+      "role": "zeek",
+      "instanceId": "REPLACE_ZEEK_INSTANCEID",
+      "privateIp": "10.20.1.9",
+      "eniId": "REPLACE_ZEEK_ENIID",
+      "securityGroupId": "REPLACE_ZEEK_SECURITYGROUPID"
+    }
+  ],
+  "mirror": {
+    "sourceEniId": "REPLACE_SOURCEENIID",
+    "targetId": "REPLACE_TARGETID",
+    "filterId": "REPLACE_FILTERID",
+    "lastTestSessionId": "REPLACE_LASTTESTSESSIONID",
+    "lastTestSessionDeleted": true,
+    "activeSessionsAtLastObservedCheck": 0
+  },
+  "zeek": {
+    "rootVolumeId": "REPLACE_ROOTVOLUMEID",
+    "amiId": "REPLACE_AMIID",
+    "sshRuleId": "REPLACE_SSHRULEID",
+    "vxlanRuleId": "REPLACE_VXLANRULEID",
+    "service": "blueguard-zeek.service",
+    "backupTimestamp": "20261116T173205Z"
+  },
+  "blueguard": {
+    "namespace": "blueguard",
+    "deployment": "blueguard-api",
+    "service": "blueguard-api",
+    "localPort": 18080,
+    "lastObservedClusterIp": "10.43.19.117"
+  },
+  "stateNote": "Template only; confirm active AWS identity, resources and runtime state before any action."
+}

@@ -1,0 +1,101 @@
+{
+  "date": "2026-11-18",
+  "provenance": "Structured transcription of laboratory terminal results; raw AWS data not included.",
+  "synthetic_payload_bytes": 5242880,
+  "synthetic_payload_sha256": "76d12977368b31ef16a4bf07357256326bbcd2d3c9737edcc461bc6df61065fa",
+  "network": {
+    "worker_private_ip": "10.20.1.11",
+    "control_plane_private_ip": "10.20.1.10",
+    "zeek_private_ip": "10.20.1.9",
+    "http_port": 18080,
+    "wazuh_private_ip": "10.20.1.16"
+  },
+  "ad03": {
+    "utc_start": "2026-11-18T17:04:00Z",
+    "curl_limit_rate_kib_per_s": 256,
+    "duration_seconds": 20.004375,
+    "http_code": 200,
+    "verified": true,
+    "worker_outbound_packets": 3684,
+    "zeek_outbound_packets": 3437,
+    "aws_mirror_out_packets": 3437,
+    "aws_skip_mirror_out_packets": 247,
+    "aws_mirror_out_bytes": 5284677,
+    "aws_skip_mirror_out_bytes": 373462,
+    "worker_inbound_packets": 409,
+    "zeek_inbound_packets": 409,
+    "aws_mirror_in_packets": 409,
+    "aws_skip_mirror_in_packets": 0,
+    "zeek_uid": "C9x8Ct3NgkfJVcOP5a",
+    "zeek_conn_state": "SF",
+    "zeek_history": "ShADaGGdfF",
+    "zeek_missed_bytes": 357160,
+    "worker_ip_ids_first": 49972,
+    "worker_ip_ids_last": 53655,
+    "worker_unique_ip_ids": 3684,
+    "zeek_unique_ip_ids": 3437,
+    "zeek_missing_ip_ids": 247,
+    "worker_tcpdump_kernel_drops": 0,
+    "zeek_tcpdump_kernel_drops": 0
+  },
+  "ad04": {
+    "utc_start": "2026-11-18T17:23:27Z",
+    "curl_limit_rate_kib_per_s": 64,
+    "duration_seconds": 80.042189,
+    "http_code": 200,
+    "verified": true,
+    "worker_outbound_packets": 3685,
+    "zeek_outbound_packets": 3682,
+    "aws_mirror_out_packets": 3682,
+    "aws_skip_mirror_out_packets": 3,
+    "aws_mirror_out_bytes": 5665913,
+    "aws_skip_mirror_out_bytes": 4542,
+    "worker_inbound_packets": 738,
+    "zeek_inbound_packets": 737,
+    "aws_mirror_in_packets": 737,
+    "aws_skip_mirror_in_packets": 1,
+    "zeek_uid": "CKbTa21kFNwV3njJV5",
+    "zeek_conn_state": "SF",
+    "zeek_history": "ShADaGdfF",
+    "zeek_missed_bytes": 4344,
+    "worker_tcpdump_kernel_drops": 0,
+    "zeek_tcpdump_kernel_drops": 0
+  },
+  "ad05": {
+    "status": "planned_not_executed",
+    "curl_limit_rate_kib_per_s": 32
+  },
+  "shutdown": {
+    "source": "user-provided AWS CLI output",
+    "verified_date": "2026-11-18",
+    "region": "eu-south-1",
+    "traffic_mirror_session_deletion": "confirmed",
+    "worker_eni_sessions_after_deletion": 0,
+    "ec2_instances_stop": "confirmed",
+    "instances": [
+      {
+        "role": "control-plane",
+        "private_ip": "10.20.1.10",
+        "state": "stopped"
+      },
+      {
+        "role": "worker",
+        "private_ip": "10.20.1.11",
+        "state": "stopped"
+      },
+      {
+        "role": "zeek",
+        "private_ip": "10.20.1.9",
+        "state": "stopped"
+      },
+      {
+        "role": "wazuh",
+        "private_ip": "10.20.1.16",
+        "instance_type": "t3.xlarge",
+        "state": "stopped"
+      }
+    ],
+    "evidence": "Reported AWS CLI delete/describe/wait output; historical state, not current resource inventory.",
+    "note": "Historical snapshot only. Original start/stop helpers cover three EC2 roles, excluding Wazuh."
+  }
+}

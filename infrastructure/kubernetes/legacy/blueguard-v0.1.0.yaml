@@ -1,0 +1,134 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blueguard
+  labels:
+    app.kubernetes.io/part-of: blueguard
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blueguard-api-code
+  namespace: blueguard
+data:
+  main.py: |
+    import json
+    from datetime import datetime, timezone
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from urllib.parse import urlparse
+
+
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "BlueGuard-Lab"
+        sys_version = ""
+
+        def do_GET(self):
+            path = urlparse(self.path).path
+            if path == "/healthz":
+                self.send_json(200, {"status": "ok"})
+            elif path == "/api/v1/status":
+                self.send_json(200, {
+                    "service": "BlueGuard API",
+                    "version": "0.1.0-lab",
+                    "environment": "lab",
+                    "monitoring": "not_configured",
+                    "zeek_connected": False,
+                    "wazuh_connected": False,
+                    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                })
+            else:
+                self.send_json(404, {"error": "not_found"})
+
+        def send_json(self, status, payload):
+            content = json.dumps(payload).encode("utf-8")
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(content)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(content)
+
+
+    if __name__ == "__main__":
+        print("BlueGuard lab API listening on port 8080", flush=True)
+        ThreadingHTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blueguard-api
+  namespace: blueguard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blueguard-api
+  template:
+    metadata:
+      labels:
+        app: blueguard-api
+    spec:
+      automountServiceAccountToken: false
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: api
+          image: python:3.13-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python", "-B", "/app/main.py"]
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 150m
+              memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: source
+              mountPath: /app
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+      volumes:
+        - name: source
+          configMap:
+            name: blueguard-api-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blueguard-api
+  namespace: blueguard
+spec:
+  type: ClusterIP
+  selector:
+    app: blueguard-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

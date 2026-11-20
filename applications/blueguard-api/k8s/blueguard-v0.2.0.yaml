@@ -1,0 +1,88 @@
+# Lab only: single-node image pre-imported to k3s containerd.
+# Do NOT apply until the image localhost/blueguard-api:0.2.0 exists on the node.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: blueguard
+  labels:
+    app.kubernetes.io/part-of: blueguard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blueguard-api
+  namespace: blueguard
+  labels:
+    app.kubernetes.io/part-of: blueguard
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: blueguard-api
+  template:
+    metadata:
+      labels:
+        app: blueguard-api
+        app.kubernetes.io/part-of: blueguard
+    spec:
+      automountServiceAccountToken: false
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: api
+          image: localhost/blueguard-api:0.2.0
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: BLUEGUARD_MODE
+              value: demo
+            - name: BLUEGUARD_ALERTS_FILE
+              value: /app/demo/alerts.json
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 350m
+              memory: 256Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blueguard-api
+  namespace: blueguard
+spec:
+  type: ClusterIP
+  selector:
+    app: blueguard-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

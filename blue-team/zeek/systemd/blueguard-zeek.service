@@ -1,0 +1,23 @@
+[Unit]
+Description=BlueGuard Zeek Network Sensor (ZeekControl)
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/opt/zeek/bin/zeekctl
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+User=zeek
+Group=zeek
+WorkingDirectory=/var/lib/zeek
+UMask=0027
+
+ExecStart=/opt/zeek/bin/zeekctl start
+ExecStop=/opt/zeek/bin/zeekctl stop
+
+TimeoutStartSec=120
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

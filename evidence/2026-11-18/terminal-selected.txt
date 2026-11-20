@@ -1,0 +1,23 @@
+# Summary of selected test observations (2026-11-18); NOT an original log export.
+# LIVE-AD-03
+POST /upload -> HTTP 200; duration=20.004375; bytes=5242880; sha256_verified=true
+worker.pcap: 4303 TCP packets overall; specific HTTP flow outbound=3684, inbound=409; kernel_drops=0
+zeek-vxlan.pcap: 3846 VXLAN packets; HTTP flow outbound=3437, inbound=409; kernel_drops=0
+worker IPv4 IDs: first=49972 last=53655 unique=3684 gaps=0 duplicates=0
+zeek IPv4 IDs: first=49972 last=53655 unique=3437 gaps=247 duplicates=0
+Zeek conn.log: uid=C9x8Ct3NgkfJVcOP5a, conn_state=SF, history=ShADaGGdfF, orig_pkts=3437, resp_pkts=409, orig_bytes=5243137, orig_ip_bytes=5064709, missed_bytes=357160
+CloudWatch Worker (17:00 UTC bucket): MirrorOut packets=3437; SkipMirrorOut packets=247; MirrorIn packets=409; SkipMirrorIn packets=0; MirrorOut bytes=5284677; SkipMirrorOut bytes=373462
+
+# LIVE-AD-04
+POST /upload -> HTTP 200; duration=80.042189; bytes=5242880; sha256_verified=true
+worker-ad04.pcap: 4803 TCP packets overall; HTTP flow outbound=3685, inbound=738; kernel_drops=0
+zeek-ad04-vxlan.pcap: 4419 VXLAN packets; HTTP flow outbound=3682, inbound=737; kernel_drops=0
+Zeek conn.log: uid=CKbTa21kFNwV3njJV5, conn_state=SF, history=ShADaGdfF, orig_pkts=3682, resp_pkts=737, orig_bytes=5243137, orig_ip_bytes=5430265, missed_bytes=4344
+CloudWatch Worker (17:20, 17:25 UTC buckets): MirrorOut=3127+555=3682; SkipMirrorOut=3+0=3; MirrorIn=621+116=737; SkipMirrorIn=1+0=1; MirrorOut bytes=4815101+850812=5665913; SkipMirrorOut bytes=4542+0=4542
+
+# Zeek/Worker ethtool evidence for LIVE-AD-03
+rx-checksumming: off [fixed]; tx-checksumming: on; tcp-segmentation-offload: off; generic-segmentation-offload: on; generic-receive-offload: on; large-receive-offload: off [fixed]
+ENA counters checked: tx_timeout=0, bw_in_allowance_exceeded=0, bw_out_allowance_exceeded=0, pps_allowance_exceeded=0, conntrack_allowance_exceeded=0, linklocal_allowance_exceeded=0, queue_0/1_rx_dma_mapping_err=0, queue_0/1_rx_xdp_drop=0
+
+# State note
+LIVE-AD-05 not executed; temporary Traffic Mirror session deletion and EC2 stop requested but not confirmed by output; no PCAP or original Zeek log is embedded in this ZIP.

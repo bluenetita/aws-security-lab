@@ -1,0 +1,29 @@
+{
+  "note": "Reference rule definitions; not a directly runnable create-filter request",
+  "rules": [
+    {
+      "TrafficDirection": "egress",
+      "RuleNumber": 100,
+      "RuleAction": "accept",
+      "Protocol": 6,
+      "SourceCidrBlock": "10.20.1.11/32",
+      "DestinationCidrBlock": "0.0.0.0/0",
+      "DestinationPortRange": {
+        "FromPort": 80,
+        "ToPort": 80
+      }
+    },
+    {
+      "TrafficDirection": "ingress",
+      "RuleNumber": 100,
+      "RuleAction": "accept",
+      "Protocol": 6,
+      "SourceCidrBlock": "0.0.0.0/0",
+      "DestinationCidrBlock": "10.20.1.11/32",
+      "SourcePortRange": {
+        "FromPort": 80,
+        "ToPort": 80
+      }
+    }
+  ]
+}

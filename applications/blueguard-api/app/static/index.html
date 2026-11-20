@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>BlueGuard — Network Threat Monitoring</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigazione principale">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">◆</span>BlueGuard</div>
+      <div class="nav-group-label">WORKSPACE</div>
+      <a class="nav-item selected" href="/" aria-current="page"><span aria-hidden="true">◫</span> Panoramica</a>
+      <div class="nav-item disabled"><span aria-hidden="true">◈</span> Fonti dati <small>Presto</small></div>
+      <div class="nav-item disabled"><span aria-hidden="true">▤</span> Report <small>Presto</small></div>
+      <div class="sidebar-end">
+        <div class="sidebar-label">AMBIENTE</div>
+        <div class="environment">AWS · eu-south-1</div>
+        <div class="sidebar-note">Prototipo didattico. Nessun dato cliente collegato.</div>
+      </div>
+    </aside>
+    <main class="main-content">
+      <div class="topbar"><span class="crumb">Security Operations <span>/</span> Overview</span><span class="version">v0.2.0 · lab</span></div>
+      <section class="heading-row">
+        <div><div class="eyebrow">NETWORK THREAT MONITORING</div><h1>Panoramica sicurezza</h1><p>Eventi di rete, stato delle fonti e analisi iniziale.</p></div>
+        <button class="refresh" id="refresh" type="button">Aggiorna dati</button>
+      </section>
+      <div class="demo-banner" role="status"><span class="demo-dot" aria-hidden="true"></span><strong>MODALITA DEMO</strong><span>Tutti gli alert sono sintetici. Zeek e Wazuh non sono collegati.</span></div>
+      <section class="kpis" aria-label="Indicatori sintetici">
+        <article class="kpi"><div class="kpi-title">Alert dimostrativi</div><div class="kpi-value" id="metric-total">—</div><div class="kpi-note">Dati sintetici caricati</div></article>
+        <article class="kpi"><div class="kpi-title">Alta / Critica</div><div class="kpi-value" id="metric-risk">—</div><div class="kpi-note">Gravita degli esempi</div></article>
+        <article class="kpi"><div class="kpi-title">Da analizzare</div><div class="kpi-value" id="metric-new">—</div><div class="kpi-note">Stato triage: new</div></article>
+        <article class="kpi"><div class="kpi-title">Sensori live</div><div class="kpi-value" id="metric-sensors">0</div><div class="kpi-note warning">Nessuna integrazione attiva</div></article>
+      </section>
+      <div class="content-grid">
+        <section class="panel alerts-panel" aria-labelledby="alerts-title">
+          <div class="panel-heading"><div><h2 id="alerts-title">Eventi di sicurezza</h2><p>Elenco degli alert sintetici di questa versione.</p></div><span class="count-pill" id="alert-count">—</span></div>
+          <div class="filters"><label class="sr-only" for="search">Cerca eventi</label><input id="search" type="search" placeholder="Cerca IP, regola o evento" maxlength="80"><label class="sr-only" for="severity">Severita</label><select id="severity"><option value="">Tutte le gravita</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select></div>
+          <div class="table-container"><table><thead><tr><th>Evento</th><th>Gravita</th><th>Origine → destinazione</th><th>Stato</th></tr></thead><tbody id="alert-body"><tr><td colspan="4" class="loading">Caricamento...</td></tr></tbody></table></div>
+          <div class="panel-footer">Mostrati fino a 100 eventi dimostrativi · <span id="last-updated">—</span></div>
+        </section>
+        <aside class="right-column">
+          <section class="panel source-panel"><div class="panel-heading"><div><h2>Integrazioni</h2><p>Stato dei collegamenti live.</p></div></div><div class="source-line"><span class="source-icon">Z</span><span class="source-label">Zeek<small>Network telemetry</small></span><span class="source-badge">Non collegato</span></div><div class="source-line"><span class="source-icon">W</span><span class="source-label">Wazuh<small>Security alerts</small></span><span class="source-badge">Non collegato</span></div><div class="source-footer">I valori sono dichiarati dal prototipo, non misure di connettivita.</div></section>
+          <section class="panel detail-panel" aria-live="polite"><div class="panel-heading"><div><h2>Dettaglio evento</h2><p>Seleziona una riga per approfondire.</p></div></div><div id="detail-content" class="detail-empty">Nessun evento selezionato.</div></section>
+        </aside>
+      </div>
+      <footer class="footer">BlueGuard prototype · Solo dati sintetici · Nessun accesso pubblico configurato</footer>
+    </main>
+  </div>
+</body>
+</html>

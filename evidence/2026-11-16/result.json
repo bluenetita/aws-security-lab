@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-16",
+  "provenance": "User-provided terminal output; selected excerpts, no independent rerun",
+  "scenario": "worker-http-via-aws-vxlan",
+  "sender_private_ip": "10.20.1.11",
+  "sensor_private_ip": "10.20.1.9",
+  "planned_requests": 3,
+  "sender_http_200": 3,
+  "zeek_matching_http_200": 3,
+  "zeek_receiver_packets": 36,
+  "zeek_receiver_reported_drops": 0,
+  "zeek_receiver_not_processed": 0,
+  "end_to_end_packet_loss_proven": false,
+  "mirror_session_deleted_after_test": true,
+  "subsequent_service_check": {
+    "systemd_enabled": true,
+    "systemd_active": "active (exited)",
+    "zeekctl_status": "running",
+    "udp_4789_listening": true
+  },
+  "pending": {
+    "ec2_reboot_test": true,
+    "maintenance_timer": true,
+    "crash_recovery_test": true,
+    "retention": true,
+    "exfiltration_detection_on_aws": true,
+    "wazuh_integration": true,
+    "live_dashboard": true
+  }
+}

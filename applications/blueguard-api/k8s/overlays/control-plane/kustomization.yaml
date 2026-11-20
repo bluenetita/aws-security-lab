@@ -1,0 +1,7 @@
+# PROPOSED ONLY: not applied to the lab at the recorded checkpoint.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../
+patches:
+  - path: node-selector.yaml

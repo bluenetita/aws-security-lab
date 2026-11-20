@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-19",
+  "evidence_type": "selected_transcription_of_lab_terminal_results",
+  "live_ad_05": {
+    "uid": "CQN9op1cWFef1nHdCj",
+    "ts": 1795098475.313673,
+    "src": "10.20.1.11:34588",
+    "dst": "10.20.1.10:18080",
+    "duration_s": 160.0792109966278,
+    "orig_bytes": 5243137,
+    "resp_bytes": 369,
+    "orig_pkts": 3687,
+    "resp_pkts": 969,
+    "missed_bytes": 0,
+    "conn_state": "SF"
+  },
+  "ingestion": {
+    "first": "OK new=1 duplicates=0 total=1",
+    "duplicate": "OK new=0 duplicates=1 total=1",
+    "receiver_records": 1,
+    "retry_test": "ALL RETRY TESTS PASSED",
+    "rotation_mock_test": "ALL ROTATION TESTS PASSED",
+    "collector_unit_tests": "8/8 pass"
+  },
+  "automation": {
+    "collector_timer": "enabled,active",
+    "collector_auto_run_utc": "2026-11-19 16:42:25Z",
+    "publisher_timer": "enabled,active",
+    "publisher_auto_run_utc": "2026-11-19 16:53:08Z"
+  },
+  "api": {
+    "version": "0.4.2-lab",
+    "pod": "blueguard-api-956f5cb47-cmlp8",
+    "pod_ready": "1/1",
+    "restarts_at_check": 0,
+    "zeek_total": 1,
+    "uid": "CQN9op1cWFef1nHdCj",
+    "live": false
+  },
+  "preview": {
+    "test_data": "synthetic",
+    "test_record_count": 3,
+    "uid3": "BG-V042-POLL-03"
+  },
+  "not_verified": [
+    "new Zeek event after v0.4.2 rollout",
+    "Wazuh integration",
+    "production-grade retention"
+  ],
+  "later_operational_check": "See evidence/operations/shutdown-check.json for subsequent EC2 and Traffic Mirroring observation."
+}

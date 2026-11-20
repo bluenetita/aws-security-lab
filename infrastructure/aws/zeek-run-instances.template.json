@@ -1,0 +1,68 @@
+{
+  "ImageId": "REPLACE_VERIFIED_AMI_ID",
+  "InstanceType": "t3.medium",
+  "MinCount": 1,
+  "MaxCount": 1,
+  "KeyName": "REPLACE_KEY_PAIR_NAME",
+  "NetworkInterfaces": [
+    {
+      "DeviceIndex": 0,
+      "SubnetId": "REPLACE_SUBNET_ID",
+      "Groups": [
+        "REPLACE_ZEEK_SECURITY_GROUP_ID"
+      ],
+      "AssociatePublicIpAddress": true,
+      "DeleteOnTermination": true
+    }
+  ],
+  "CreditSpecification": {
+    "CpuCredits": "standard"
+  },
+  "MetadataOptions": {
+    "HttpEndpoint": "enabled",
+    "HttpTokens": "required"
+  },
+  "BlockDeviceMappings": [
+    {
+      "DeviceName": "/dev/sda1",
+      "Ebs": {
+        "VolumeSize": 30,
+        "VolumeType": "gp3",
+        "Encrypted": true,
+        "DeleteOnTermination": true
+      }
+    }
+  ],
+  "TagSpecifications": [
+    {
+      "ResourceType": "instance",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "blueguard-zeek-sensor"
+        },
+        {
+          "Key": "Project",
+          "Value": "BlueGuard"
+        },
+        {
+          "Key": "Environment",
+          "Value": "Lab"
+        }
+      ]
+    },
+    {
+      "ResourceType": "volume",
+      "Tags": [
+        {
+          "Key": "Name",
+          "Value": "blueguard-zeek-root"
+        },
+        {
+          "Key": "Project",
+          "Value": "BlueGuard"
+        }
+      ]
+    }
+  ]
+}
