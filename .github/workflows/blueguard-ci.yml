@@ -1,0 +1,82 @@
+name: BlueGuard CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'applications/blueguard-api/**'
+      - '.github/workflows/blueguard-ci.yml'
+  push:
+    branches: [main, chore/sync-blueguard-v0.4.2]
+    paths:
+      - 'applications/blueguard-api/**'
+      - '.github/workflows/blueguard-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: blueguard-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Tests, OCI build, and Kustomize
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check runner tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker version
+          kubectl version --client
+          yq --version
+
+      - name: Build QA image from repository sources
+        working-directory: applications/blueguard-api
+        run: docker build --pull --file Dockerfile.test --tag blueguard-qa:ci .
+
+      - name: Run regression suite in an isolated container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --network none \
+            --read-only \
+            --tmpfs /tmp:rw,nosuid,nodev,mode=1777 \
+            --cap-drop=ALL \
+            --security-opt no-new-privileges \
+            blueguard-qa:ci
+
+      - name: Build application image without publishing
+        working-directory: applications/blueguard-api
+        run: docker build --pull --file Dockerfile --tag blueguard-api:ci .
+
+      - name: Render and check Kubernetes lab overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          manifest="$RUNNER_TEMP/blueguard-k8s.yaml"
+          kubectl kustomize applications/blueguard-api/k8s/overlays/control-plane > "$manifest"
+
+          test "$(yq -r 'select(.kind == "Namespace") | .metadata.name' "$manifest")" = "blueguard"
+          test "$(yq -r 'select(.kind == "Service") | .metadata.name' "$manifest")" = "blueguard-api"
+          test "$(yq -r 'select(.kind == "Service") | .spec.type' "$manifest")" = "ClusterIP"
+          test "$(yq -r 'select(.kind == "Deployment") | .metadata.name' "$manifest")" = "blueguard-api"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image' "$manifest")" = "localhost/blueguard-api:0.4.2"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem' "$manifest")" = "true"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation' "$manifest")" = "false"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.nodeSelector."kubernetes.io/hostname"' "$manifest")" = "ip-10-20-1-10"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.volumes[0].hostPath.path' "$manifest")" = "/var/lib/blueguard/zeek"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].volumeMounts[0].readOnly' "$manifest")" = "true"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].env[-1].name' "$manifest")" = "BLUEGUARD_ZEEK_FILE"
+
+          echo "Kustomize render and lab-baseline checks: PASS"
