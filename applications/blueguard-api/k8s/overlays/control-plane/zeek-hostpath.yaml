@@ -1,0 +1,20 @@
+# LAB ONLY: hostPath binds API scheduling to one node. Replace with a durable data layer.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blueguard-api
+  namespace: blueguard
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          volumeMounts:
+            - name: zeek-snapshot
+              mountPath: /app/data/zeek
+              readOnly: true
+      volumes:
+        - name: zeek-snapshot
+          hostPath:
+            path: /var/lib/blueguard/zeek
+            type: Directory

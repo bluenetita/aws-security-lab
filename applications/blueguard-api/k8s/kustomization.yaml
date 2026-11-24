@@ -1,4 +1,6 @@
+# LAB ONLY: the default kustomization resolves to the existing control-plane overlay.
+# Do not treat this as a production deployment.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - blueguard-v0.2.0.yaml
+  - overlays/control-plane

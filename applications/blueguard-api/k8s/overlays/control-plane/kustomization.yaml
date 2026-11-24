@@ -1,7 +1,20 @@
-# PROPOSED ONLY: not applied to the lab at the recorded checkpoint.
+# Lab compatibility overlay. Requires existing node-selector.yaml in this repository.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - ../../
+  - ../../base
 patches:
   - path: node-selector.yaml
+  - path: control-plane-toleration.yaml
+  - path: zeek-hostpath.yaml
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: BLUEGUARD_ZEEK_FILE
+          value: /app/data/zeek/conn-ingested.jsonl
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
+      name: blueguard-api
