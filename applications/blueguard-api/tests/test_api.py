@@ -12,8 +12,8 @@ def test_health():
 
 def test_status_does_not_claim_live_connections():
     data = client.get("/api/v1/status").json()
-    assert data["monitoring"] == "demo_only"
-    assert data["source"] == "synthetic_fixture"
+    assert data["monitoring"] == "snapshot_only"
+    assert data["source"] == "synthetic_alerts_and_zeek_snapshot"
     assert data["zeek_connected"] is False
     assert data["wazuh_connected"] is False
 
@@ -53,6 +53,8 @@ def test_no_real_sensors():
 def test_dashboard_and_headers():
     response = client.get("/")
     assert response.status_code == 200
-    assert "MODALITA DEMO" in response.text
+    assert "MODALITA MISTA" in response.text
+    assert "/static/zeek.js" in response.text
+    assert 'id="zeek-connections"' in response.text
     assert "Content-Security-Policy" in response.headers
     assert response.headers["X-Content-Type-Options"] == "nosniff"

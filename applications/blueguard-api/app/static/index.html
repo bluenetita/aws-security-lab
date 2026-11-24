@@ -6,7 +6,9 @@
   <meta name="color-scheme" content="dark">
   <title>BlueGuard — Network Threat Monitoring</title>
   <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/zeek.css">
   <script src="/static/app.js" defer></script>
+  <script src="/static/zeek.js?v=0.4.2-ui2" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -14,6 +16,7 @@
       <div class="brand"><span class="brand-mark" aria-hidden="true">◆</span>BlueGuard</div>
       <div class="nav-group-label">WORKSPACE</div>
       <a class="nav-item selected" href="/" aria-current="page"><span aria-hidden="true">◫</span> Panoramica</a>
+      <a class="nav-item" href="#zeek-connections"><span aria-hidden="true">≋</span> Connessioni Zeek</a>
       <div class="nav-item disabled"><span aria-hidden="true">◈</span> Fonti dati <small>Presto</small></div>
       <div class="nav-item disabled"><span aria-hidden="true">▤</span> Report <small>Presto</small></div>
       <div class="sidebar-end">
@@ -23,12 +26,12 @@
       </div>
     </aside>
     <main class="main-content">
-      <div class="topbar"><span class="crumb">Security Operations <span>/</span> Overview</span><span class="version">v0.2.0 · lab</span></div>
+      <div class="topbar"><span class="crumb">Security Operations <span>/</span> Overview</span><span class="version">v0.4.2 · lab</span></div>
       <section class="heading-row">
         <div><div class="eyebrow">NETWORK THREAT MONITORING</div><h1>Panoramica sicurezza</h1><p>Eventi di rete, stato delle fonti e analisi iniziale.</p></div>
         <button class="refresh" id="refresh" type="button">Aggiorna dati</button>
       </section>
-      <div class="demo-banner" role="status"><span class="demo-dot" aria-hidden="true"></span><strong>MODALITA DEMO</strong><span>Tutti gli alert sono sintetici. Zeek e Wazuh non sono collegati.</span></div>
+      <div class="demo-banner" role="status"><span class="demo-dot" aria-hidden="true"></span><strong>MODALITA MISTA</strong><span>Alert sintetici e telemetria Zeek acquisita periodicamente. Nessuna integrazione streaming live con Zeek o Wazuh.</span></div>
       <section class="kpis" aria-label="Indicatori sintetici">
         <article class="kpi"><div class="kpi-title">Alert dimostrativi</div><div class="kpi-value" id="metric-total">—</div><div class="kpi-note">Dati sintetici caricati</div></article>
         <article class="kpi"><div class="kpi-title">Alta / Critica</div><div class="kpi-value" id="metric-risk">—</div><div class="kpi-note">Gravita degli esempi</div></article>
@@ -43,11 +46,42 @@
           <div class="panel-footer">Mostrati fino a 100 eventi dimostrativi · <span id="last-updated">—</span></div>
         </section>
         <aside class="right-column">
-          <section class="panel source-panel"><div class="panel-heading"><div><h2>Integrazioni</h2><p>Stato dei collegamenti live.</p></div></div><div class="source-line"><span class="source-icon">Z</span><span class="source-label">Zeek<small>Network telemetry</small></span><span class="source-badge">Non collegato</span></div><div class="source-line"><span class="source-icon">W</span><span class="source-label">Wazuh<small>Security alerts</small></span><span class="source-badge">Non collegato</span></div><div class="source-footer">I valori sono dichiarati dal prototipo, non misure di connettivita.</div></section>
+          <section class="panel source-panel"><div class="panel-heading"><div><h2>Integrazioni</h2><p>Stato dei collegamenti live.</p></div></div><div class="source-line"><span class="source-icon">Z</span><span class="source-label">Zeek<small>Acquisizione periodica dei log · non live</small></span><span class="source-badge">Non collegato</span></div><div class="source-line"><span class="source-icon">W</span><span class="source-label">Wazuh<small>Security alerts</small></span><span class="source-badge">Non collegato</span></div><div class="source-footer">I valori sono dichiarati dal prototipo, non misure di connettivita.</div></section>
           <section class="panel detail-panel" aria-live="polite"><div class="panel-heading"><div><h2>Dettaglio evento</h2><p>Seleziona una riga per approfondire.</p></div></div><div id="detail-content" class="detail-empty">Nessun evento selezionato.</div></section>
         </aside>
       </div>
-      <footer class="footer">BlueGuard prototype · Solo dati sintetici · Nessun accesso pubblico configurato</footer>
+            <section id="zeek-connections" class="panel zeek-panel" aria-labelledby="zeek-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="zeek-title">Network Connections · Zeek</h2>
+            <p>Connessioni raccolte da Zeek e pubblicate periodicamente. Sono eventi di rete, non alert; i dati non sono uno streaming live.</p>
+          </div>
+          <span class="count-pill" id="zeek-count">—</span>
+        </div>
+        <div class="zeek-kpis" aria-label="Statistiche dei record Zeek">
+          <div class="zeek-stat"><span class="zeek-stat-label">Connessioni filtrate</span><strong class="zeek-stat-value" id="zeek-total">—</strong><span class="zeek-stat-hint">Totale acquisito per i filtri</span></div>
+          <div class="zeek-stat"><span class="zeek-stat-label">TCP visualizzati</span><strong class="zeek-stat-value" id="zeek-tcp">—</strong><span class="zeek-stat-hint">Righe della pagina attuale</span></div>
+          <div class="zeek-stat"><span class="zeek-stat-label">Missed bytes</span><strong class="zeek-stat-value" id="zeek-missed">—</strong><span class="zeek-stat-hint">Somma delle righe visibili, se nota</span></div>
+        </div>
+        <form class="filters zeek-filters" id="zeek-filters">
+          <label for="zeek-source-ip" class="sr-only">IP sorgente</label>
+          <input id="zeek-source-ip" type="search" maxlength="45" placeholder="IP sorgente (es. 10.20.1.11)" autocomplete="off">
+          <label for="zeek-proto" class="sr-only">Protocollo</label>
+          <select id="zeek-proto"><option value="">Tutti i protocolli</option><option value="tcp">TCP</option><option value="udp">UDP</option><option value="icmp">ICMP</option></select>
+          <button type="submit" class="refresh">Applica filtri</button>
+          <button type="button" class="zeek-reset" id="zeek-reset">Reimposta</button>
+        </form>
+        <div class="zeek-status" id="zeek-status" role="status" aria-live="polite">Caricamento connessioni Zeek...</div>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Timestamp UTC</th><th>Origine → destinazione</th><th>Protocollo / servizio</th><th>Bytes applicativi Orig / Resp</th><th>Missed bytes</th><th>Stato</th></tr></thead>
+            <tbody id="zeek-body"><tr><td colspan="6" class="loading">Caricamento...</td></tr></tbody>
+          </table>
+        </div>
+        <div id="zeek-detail" class="zeek-detail" aria-live="polite">Seleziona una connessione per vedere i dettagli.</div>
+        <div class="panel-footer"><span id="zeek-last-updated">—</span> · Aggiornamento automatico ogni 30 s nella sezione Zeek · Acquisizione periodica (non live).</div>
+      </section>
+      <footer class="footer">BlueGuard prototype · Alert sintetici + telemetria Zeek acquisita · Non live · Nessun accesso pubblico configurato</footer>
     </main>
   </div>
 </body>

@@ -3,26 +3,29 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .schemas import Alert, AlertPage, Severity, Status, Summary
 from .store import load_demo_alerts
+from .zeek_api import router as zeek_router
+from .zeek import get_zeek_snapshot
 
-VERSION = "0.2.0-lab"
+VERSION = "0.4.2-lab"
 BASE = Path(__file__).resolve().parent
 ALERTS = load_demo_alerts()
 
 # These demo APIs have no authentication. They MUST remain accessible only
 # through the local SSH tunnel, never through a public Ingress/LoadBalancer.
 app = FastAPI(
-    title="BlueGuard API — demo",
+    title="BlueGuard API — lab",
     version=VERSION,
-    description="Read-only synthetic data; no live Wazuh or Zeek integration.",
+    description="Synthetic alerts and an imported Zeek snapshot; no live sensor integrations.",
     docs_url=None,
     redoc_url=None,
 )
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
+app.include_router(zeek_router)
 
 
 @app.middleware("http")
@@ -52,7 +55,21 @@ def health():
 
 @app.get("/readyz", tags=["health"])
 def ready():
-    return {"status": "ready", "data_mode": "synthetic_fixture"}
+    try:
+        count = len(get_zeek_snapshot())
+    except (OSError, ValueError):
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "not_ready",
+                "zeek_snapshot": "unavailable",
+            },
+        )
+    return {
+        "status": "ready",
+        "data_mode": "synthetic_alerts_and_zeek_snapshot",
+        "zeek_snapshot_records": count,
+    }
 
 
 @app.get("/api/v1/status", response_model=Status, tags=["monitoring"])
@@ -61,10 +78,10 @@ def status():
         service="BlueGuard API",
         version=VERSION,
         environment="lab",
-        monitoring="demo_only",
+        monitoring="snapshot_only",
         zeek_connected=False,
         wazuh_connected=False,
-        source="synthetic_fixture",
+        source="synthetic_alerts_and_zeek_snapshot",
         timestamp_utc=datetime.now(timezone.utc),
     )
 
