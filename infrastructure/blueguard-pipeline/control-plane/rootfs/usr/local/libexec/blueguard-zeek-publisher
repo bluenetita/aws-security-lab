@@ -1,0 +1,127 @@
+#!/usr/bin/env python3
+"""Publish validated Zeek events to the read-only Kubernetes mount."""
+
+import hashlib
+import ipaddress
+import json
+import math
+import os
+import stat
+import tempfile
+from pathlib import Path
+
+SOURCE = Path("/var/lib/blueguard-ingest/incoming/conn.jsonl")
+DEST = Path("/var/lib/blueguard/zeek/conn-ingested.jsonl")
+MAX_BYTES = 10 * 1024 * 1024
+MAX_RECORDS = 10000
+POD_GID = 10001
+
+
+def main():
+    directory = DEST.parent
+    info = directory.stat()
+
+    if (info.st_uid != 0 or info.st_gid != POD_GID
+            or info.st_mode & 0o022):
+        raise RuntimeError("Unsafe publication directory permissions")
+
+    with SOURCE.open("rb") as stream:
+        data = stream.read(MAX_BYTES + 1)
+
+    if not data or len(data) > MAX_BYTES:
+        raise ValueError("Source is empty or exceeds 10 MiB")
+
+    if not data.endswith(b"\n"):
+        raise ValueError("Incomplete final JSONL record")
+
+    identities = set()
+    count = 0
+
+    for number, line in enumerate(data.splitlines(), 1):
+        if not line.strip():
+            continue
+
+        record = json.loads(line)
+        if not isinstance(record, dict):
+            raise ValueError(f"Invalid record {number}")
+
+        uid = record["uid"]
+        ts = record["ts"]
+
+        if not isinstance(uid, str) or not 1 <= len(uid) <= 128:
+            raise ValueError(f"Invalid UID at line {number}")
+
+        if (type(ts) not in (int, float)
+                or not math.isfinite(ts)):
+            raise ValueError(f"Invalid timestamp at line {number}")
+
+        for field in ("id.orig_h", "id.resp_h"):
+            ipaddress.ip_address(record[field])
+
+        for field in ("id.orig_p", "id.resp_p"):
+            port = record[field]
+            if type(port) is not int or not 0 <= port <= 65535:
+                raise ValueError(f"Invalid {field}")
+
+        if record["proto"] not in ("tcp", "udp", "icmp"):
+            raise ValueError("Invalid protocol")
+
+        identity = (uid, ts)
+        if identity in identities:
+            raise ValueError("Duplicate connection")
+
+        identities.add(identity)
+        count += 1
+
+        if count > MAX_RECORDS:
+            raise ValueError("Record limit exceeded")
+
+    if not count:
+        raise ValueError("No records to publish")
+
+    if DEST.is_symlink():
+        raise RuntimeError("Destination cannot be a symlink")
+
+    if DEST.exists():
+        existing_info = DEST.stat()
+        correct_permissions = (
+            existing_info.st_uid == 0
+            and existing_info.st_gid == POD_GID
+            and stat.S_IMODE(existing_info.st_mode) == 0o440
+        )
+
+        if correct_permissions and DEST.read_bytes() == data:
+            print(f"UNCHANGED records={count}")
+            return
+
+    fd, temporary = tempfile.mkstemp(
+        prefix=".conn-ingested-",
+        dir=directory
+    )
+
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            os.fchown(stream.fileno(), 0, POD_GID)
+            os.fchmod(stream.fileno(), 0o440)
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+
+        os.replace(temporary, DEST)
+
+        directory_fd = os.open(directory, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+    digest = hashlib.sha256(data).hexdigest()
+    print(f"PUBLISHED records={count} sha256={digest}")
+
+
+if __name__ == "__main__":
+    main()

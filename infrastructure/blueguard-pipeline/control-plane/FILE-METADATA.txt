@@ -1,0 +1,11 @@
+755 root:root /usr/local/libexec/blueguard-ingest-jsonl
+755 root:root /usr/local/libexec/blueguard-ingest-with-health.py
+755 root:root /usr/local/libexec/blueguard-ingestion-exporter.py
+755 root:root /usr/local/libexec/blueguard-ssh-receiver
+755 root:root /usr/local/libexec/blueguard-zeek-heartbeat.py
+755 root:root /usr/local/libexec/blueguard-zeek-publisher
+644 root:root /etc/systemd/system/blueguard-ingestion-exporter.service
+644 root:root /etc/systemd/system/blueguard-ingestion-exporter.timer
+644 root:root /etc/systemd/system/blueguard-zeek-publisher.service
+644 root:root /etc/systemd/system/blueguard-zeek-publisher.timer
+644 root:root /etc/systemd/system/blueguard-zeek-publisher.service.d/10-heartbeat.conf

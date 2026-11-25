@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""Bounded, idempotent ingestion of Zeek conn.log JSONL batches."""
+
+import fcntl
+import ipaddress
+import json
+import math
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+BASE = Path("/var/lib/blueguard-ingest/incoming")
+STORE = BASE / "conn.jsonl"
+LOCK = BASE / ".ingest.lock"
+
+MAX_BATCH = 1024 * 1024
+MAX_STORE = 10 * 1024 * 1024
+MAX_RECORDS = 10000
+
+os.umask(0o077)
+
+
+def validate(record):
+    if not isinstance(record, dict):
+        raise ValueError("Record must be an object")
+
+    uid = record.get("uid")
+    ts = record.get("ts")
+
+    if not isinstance(uid, str) or not 1 <= len(uid) <= 128:
+        raise ValueError("Invalid uid")
+
+    if (
+        type(ts) not in (int, float)
+        or not 0 <= ts <= 1e11
+        or not math.isfinite(ts)
+    ):
+        raise ValueError("Invalid timestamp")
+
+    for field in ("id.orig_h", "id.resp_h"):
+        ipaddress.ip_address(record[field])
+
+    for field in ("id.orig_p", "id.resp_p"):
+        value = record[field]
+        if type(value) is not int or not 0 <= value <= 65535:
+            raise ValueError(f"Invalid {field}")
+
+    if record.get("proto") not in ("tcp", "udp", "icmp"):
+        raise ValueError("Unsupported protocol")
+
+    for field in (
+        "orig_bytes", "resp_bytes", "missed_bytes",
+        "orig_pkts", "resp_pkts"
+    ):
+        value = record.get(field)
+        if value is not None:
+            if type(value) is not int or value < 0:
+                raise ValueError(f"Invalid {field}")
+
+    duration = record.get("duration")
+    if duration is not None:
+        if (
+            type(duration) not in (int, float)
+            or not 0 <= duration <= 1e9
+            or not math.isfinite(duration)
+        ):
+            raise ValueError("Invalid duration")
+
+    return (uid, float(ts))
+
+
+def main():
+    payload = sys.stdin.buffer.read(MAX_BATCH + 1)
+
+    if not payload or len(payload) > MAX_BATCH:
+        raise ValueError("Empty or oversized batch")
+
+    records = []
+
+    for number, line in enumerate(payload.splitlines(), 1):
+        if not line.strip():
+            continue
+
+        if len(line) > 65536:
+            raise ValueError(f"Oversized record at line {number}")
+
+        record = json.loads(line)
+        key = validate(record)
+        records.append((key, record))
+
+    if not records:
+        raise ValueError("No valid records supplied")
+
+    with LOCK.open("a+b") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+
+        if STORE.is_symlink():
+            raise ValueError("Invalid storage path")
+
+        existing = STORE.read_bytes() if STORE.exists() else b""
+
+        if len(existing) > MAX_STORE:
+            raise ValueError("Existing store exceeds limit")
+
+        known = set()
+        total = 0
+
+        for line in existing.splitlines():
+            if not line.strip():
+                continue
+
+            key = validate(json.loads(line))
+            if key in known:
+                raise ValueError("Duplicate in existing store")
+            known.add(key)
+            total += 1
+
+        additions = []
+        duplicates = 0
+
+        for key, record in records:
+            if key in known:
+                duplicates += 1
+                continue
+
+            known.add(key)
+            additions.append(
+                (
+                    json.dumps(
+                        record,
+                        separators=(",", ":"),
+                        allow_nan=False
+                    ) + "\n"
+                ).encode("utf-8")
+            )
+
+        new_data = b"".join(additions)
+
+        if len(existing) + len(new_data) > MAX_STORE:
+            raise ValueError("Storage limit exceeded")
+
+        if total + len(additions) > MAX_RECORDS:
+            raise ValueError("Record limit exceeded")
+
+        if additions:
+            temp_path = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    dir=BASE,
+                    prefix=".conn-",
+                    delete=False
+                ) as tmp:
+                    temp_path = Path(tmp.name)
+                    tmp.write(existing)
+                    tmp.write(new_data)
+                    tmp.flush()
+                    os.fsync(tmp.fileno())
+
+                os.replace(temp_path, STORE)
+
+            finally:
+                if temp_path and temp_path.exists():
+                    temp_path.unlink()
+
+        print(
+            f"OK new={len(additions)} "
+            f"duplicates={duplicates} "
+            f"total={total + len(additions)}"
+        )
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, KeyError, OSError, OverflowError,
+            UnicodeError, RecursionError) as exc:
+        print(f"INGEST_REJECTED: {exc}", file=sys.stderr)
+        sys.exit(1)

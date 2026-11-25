@@ -1,0 +1,11 @@
+[Unit]
+Description=BlueGuard - Periodic ingestion health export
+
+[Timer]
+OnCalendar=minutely
+AccuracySec=10s
+Persistent=true
+Unit=blueguard-ingestion-exporter.service
+
+[Install]
+WantedBy=timers.target

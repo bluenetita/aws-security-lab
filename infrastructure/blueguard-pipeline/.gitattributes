@@ -1,0 +1,4 @@
+.gitattributes text eol=lf
+control-plane/FILE-METADATA.txt text eol=lf
+control-plane/rootfs/usr/local/libexec/* text eol=lf
+control-plane/rootfs/etc/systemd/system/** text eol=lf

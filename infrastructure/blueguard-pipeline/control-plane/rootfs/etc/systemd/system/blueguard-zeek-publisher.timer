@@ -1,0 +1,11 @@
+[Unit]
+Description=BlueGuard v0.4.0 - Periodic Zeek event publication
+
+[Timer]
+OnCalendar=minutely
+AccuracySec=10s
+Persistent=true
+Unit=blueguard-zeek-publisher.service
+
+[Install]
+WantedBy=timers.target

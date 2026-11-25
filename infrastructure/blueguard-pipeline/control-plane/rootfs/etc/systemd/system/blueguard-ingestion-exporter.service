@@ -1,0 +1,25 @@
+[Unit]
+Description=BlueGuard - Validated ingestion health exporter
+After=local-fs.target
+RequiresMountsFor=/var/lib/blueguard-ingest/incoming /var/lib/blueguard/zeek
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -B /usr/local/libexec/blueguard-ingestion-exporter.py
+TimeoutStartSec=30
+UMask=0077
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/blueguard/zeek
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateNetwork=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
