@@ -58,6 +58,25 @@ The `blueguard-api` Deployment rolled out image **`localhost/blueguard-api:0.4.2
 
 A separate Podman preview used synthetic JSONL fixtures and demonstrated API access to **three** records and their display in the browser. This preview **does not** constitute a new end-to-end traffic-mirroring result. The dashboard's **seven alert records remain synthetic**.
 
+## Capture diagnostic review, 24 November
+
+The supplied terminal outputs show MTU 9001 on Worker, Control Plane and Zeek `ens5`; TX checksum offload, GSO and GRO enabled, TSO disabled, RX checksum offload and LRO off/fixed. On Zeek, interface RX errors/drops were zero. Zeek 9.0.1 was listening on `udp::0.0.0.0:4789:vxlan`; the UDP socket had an 8 MiB receive buffer, zero queued bytes and zero socket drops at inspection. Global UDP receive, buffer, checksum and memory error counters were zero. These are point-in-time/cumulative observations, not interval loss measurements. `stats.log` was found later; `capture_loss.log` was not found in the inspected paths.
+
+| AWS/EC2 metric, Worker source | 18:00 UTC 300 s datapoint (19:00 CET) |
+|---|---:|
+| `NetworkMirrorIn` | 685,240 B |
+| `NetworkMirrorOut` | 6,979 B |
+| `NetworkSkipMirrorIn` | 0 B |
+| `NetworkSkipMirrorOut` | 0 B |
+
+The preceding 17:55 UTC datapoint was zero for all four metrics. The evidence supports no reported priority-related skips in these datapoints, not complete packet delivery. With jumbo frames and VXLAN overhead, truncation remains a relevant diagnostic hypothesis. Do not infer a new causal MTU result from this inspection; no fresh A/B test was executed for the rc4 release. Earlier controlled experiments are preserved above.
+
+## Application validation, 24 November
+
+The rc4 Canary and main Service returned successful responses on seven endpoints. The main Service quality response at approximately 18:40:40 UTC included 11 stored connection records, a last accepted batch of 5 new records and 0 duplicates, and 9,136,929 aggregate `missed_bytes` over the available snapshot. The publisher heartbeat was 37 s old, while the last accepted batch was 2,374 s old; the Quality Gate reported `degraded` and `gaps_observed`. These observations validate reading and classification of stored telemetry, not live packet loss or a new complete capture experiment.
+
+See [release report](telemetry-quality.md) and [`evidence/2026-11-24/result.json`](../evidence/2026-11-24/result.json).
+
 ## Outstanding experiment
 
-A **new** mirrored connection captured *after the v0.4.2 rollout*, observed through the collector/receiver/publisher and appearing in the Kubernetes browser without manual file edits, has **not** been validated. End-to-end latency, longer-term reliability and Wazuh-based detection have therefore not been measured.
+The supplied repository and retained 24 November terminal evidence do not establish a single fresh Zeek UID traced from mirrored packets through ingestion, publication and browser display with measured latency during the rc4 release. A recent accepted batch and successful API reads are evidenced; an independently timed full-path test, sustained load, and Wazuh-based detection remain unverified.

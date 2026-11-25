@@ -90,3 +90,25 @@ ssh -N -i $PrivateKey -o IdentitiesOnly=yes -o ExitOnForwardFailure=yes `
 ```
 
 Open `http://127.0.0.1:18083` while the SSH window remains open. This is an administrative lab-access method; it is not end-user authentication.
+
+## rc4 release and rollback (Control Plane)
+
+The rc4 image is node-local, with `imagePullPolicy: Never`; both rc3 and rc4 were retained in containerd at the final check. The main `blueguard-api` Deployment in namespace `blueguard` was 1/1 Ready with zero restarts, and the `blueguard-api-canary` Deployment was deleted. Verify current image availability and workload state before any change. Do not apply the older repository manifests as a replacement for rc4.
+
+```bash
+sudo -n k3s kubectl -n blueguard get deployments,pods,services -o wide
+sudo -n k3s kubectl -n blueguard rollout history deployment/blueguard-api
+sudo -n k3s crictl images | grep -E 'blueguard-api.*0\.5\.0-rc[34]'
+```
+
+**Change control:** only if a rollback is required and authorized, after confirming the rc3 image and control-plane placement:
+
+```bash
+sudo -n k3s kubectl -n blueguard set image deployment/blueguard-api \
+  api=localhost/blueguard-api:0.5.0-rc3
+sudo -n k3s kubectl -n blueguard rollout status deployment/blueguard-api --timeout=120s
+```
+
+Verify readiness and `/api/v1/status` afterward. Rollback is an available procedure, not a rollback execution verified for this release. `sudo -n` fails rather than prompting for a password. The rc4 release did not require changing sudo policy or passwords.
+
+**End-of-day checkpoint:** the final application observation was at 18:41:45 UTC on 24 November. No subsequent AWS shutdown or mirror-session inventory was supplied. Close any local tunnel/port-forward when finished; independently check authorized AWS resources and clean up approved test sessions before stopping instances. The earlier shutdown evidence remains historical.

@@ -1,32 +1,30 @@
 # Source inventory and reproducibility
 
-## Included in this repository
+## Included in the uploaded repository (24 November 2026)
 
-- [`applications/blueguard-api/`](../applications/blueguard-api/) preserves original **v0.2.0** application source, Dockerfile, dependency manifests, synthetic alert fixture, tests and Kubernetes manifest.
-- `blue-team/zeek/` contains selected Zeek configuration fragments and the historical Zeek service unit.
-- AWS, Kubernetes and PowerShell examples are retained for reference; several represent earlier experimental states.
-- Evidence files summarize results of **v0.4.2 runtime tests** and network experiments.
+The application directory was inspected directly. `applications/blueguard-api/app/main.py` declares `VERSION = "0.4.2-lab"` and imports the Zeek API router. The tree contains `app/zeek.py`, `app/zeek_api.py`, Zeek UI assets, `tests/test_zeek.py`, `tests/test_api.py`, application and QA Dockerfiles, dependency files and synthetic alerts. The Kustomize base uses `localhost/blueguard-api:0.4.2`; the control-plane overlay supplies the lab placement and read-only snapshot. `.github/workflows/blueguard-ci.yml` checks that older baseline. Its presence is not evidence of a successful recent CI run.
 
-## Not included
+Older README text describing this directory as original v0.2.0 was stale. The historical v0.2.0 and v0.1.0 manifests remain examples, not the latest deployment. The Zeek configuration fragments, service unit, AWS examples, PowerShell scripts and historical evidence are also included.
 
-The supplied archive did **not** contain the deployed **v0.4.2** source tree, image, new manifest or the installed ingestion programs:
+## Not included in the uploaded repository
 
 | Required component | Known laboratory location |
 |---|---|
-| BlueGuard v0.4.2 app and Dockerfile | `/home/ubuntu/blueguard-v0.3.0/` on Control Plane |
-| Kubernetes v0.4.2 manifest | `k8s/blueguard-v0.4.2.yaml` in that directory |
-| Collector source/installed program | Zeek host: `/usr/local/libexec/blueguard-zeek-collector` |
+| Complete rc4 application source, static assets, QA tests, Dockerfile | Control Plane: `/home/ubuntu/blueguard-v0.5.0-rc4/` |
+| rc3 rollback source | Control Plane: `/home/ubuntu/blueguard-v0.5.0-rc3/` |
+| Effective rc4 Deployment/Service and related configuration | k3s namespace `blueguard`; export reviewed resource specs from Control Plane |
+| Collector source/installed program | Zeek: `/usr/local/libexec/blueguard-zeek-collector` |
 | SSH receiver / JSONL ingestion | Control Plane: `/usr/local/libexec/blueguard-ssh-receiver`, `/usr/local/libexec/blueguard-ingest-jsonl` |
 | Publisher source/installed program | Control Plane: `/usr/local/libexec/blueguard-zeek-publisher` |
-| Actual service/timer units | Respective EC2 host under `systemd` unit directories |
+| Actual service/timer units | Respective EC2 hosts under systemd unit directories |
 
-The directory name `blueguard-v0.3.0` is historical; the deployed application reported version **`0.4.2-lab`**. Deployment outcomes are documented without claiming that the complete release is reproducible from this ZIP.
+The deployed image is `localhost/blueguard-api:0.5.0-rc4`; rc3 and rc4 are retained in the node runtime. The release passed 54 tests on the EC2 development tree, and 24 file checksums matched the incremental image. These checks were not rerun on the older uploaded repository. The image layers, full rc4 sources and exact effective manifest are not included by this documentation update.
 
 ## Requirements for a source-complete release
 
-1. Export only approved source files and unit definitions from the target hosts; exclude `backups/`, `.smoke/`, local credentials, private keys, `/var/lib` stores and logs.
-2. Compare exported sources to the deployed image and the effective manifest; review all configuration differences.
-3. Commit the reviewed v0.4.2 sources with automated tests and provenance. Re-run build, unit/integration tests and Kubernetes rollout against the committed code.
-4. Update the release documentation only after a source-identical image has been validated.
+1. Export approved rc4 source files, dependency manifests, tests and reviewed service definitions; exclude backups, `.smoke`, credentials, keys, kubeconfig, caches, raw captures and `/var/lib` stores.
+2. Export and sanitize effective Kubernetes resource specs; compare to the local manifests and verify the runtime image and configuration. Do not export Kubernetes Secrets.
+3. Synchronize the actual rc4 source and tests, deployment manifests and CI checks together; review changes before commit. Never relabel the older source to rc4.
+4. Rebuild from the reviewed source with pinned dependencies/base digest, rerun tests and validate an isolated deployment before claiming source-identical reproducibility.
 
-This is a **reproducibility gap**, not evidence that the currently deployed application failed. The original v0.2.0 code must not be relabeled v0.4.2.
+This is a **reproducibility gap**, not an observed failure of the deployed rc4. The 24 November documentation-only overlay intentionally does not change executable source, manifests or CI.

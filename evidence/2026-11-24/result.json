@@ -1,0 +1,158 @@
+{
+  "date_utc": "2026-11-24",
+  "provenance": "Selected transcription of operator-supplied terminal outputs; not raw exports or independent verification.",
+  "capture_diagnostics": {
+    "zeek_version": "9.0.1",
+    "interface": "ens5",
+    "mtu_worker_control_plane_zeek": 9001,
+    "offloading": {
+      "rx_checksumming": "off [fixed]",
+      "tx_checksumming": "on",
+      "tso": "off",
+      "gso": "on",
+      "gro": "on",
+      "lro": "off [fixed]"
+    },
+    "zeek_interface_rx_errors": 0,
+    "zeek_interface_rx_dropped": 0,
+    "zeek_interface_rx_missed": 0,
+    "zeek_packet_source": "udp::0.0.0.0:4789:vxlan",
+    "udp_socket_receive_buffer_bytes": 8388608,
+    "udp_socket_recv_queue": 0,
+    "udp_socket_drops": 0,
+    "udp_kernel_cumulative": {
+      "UdpInDatagrams": 880,
+      "UdpNoPorts": 3,
+      "UdpInErrors": 0,
+      "UdpRcvbufErrors": 0,
+      "UdpInCsumErrors": 0,
+      "UdpMemErrors": 0
+    },
+    "stats_log_found": true,
+    "capture_loss_log_found": false,
+    "cloudwatch": {
+      "namespace": "AWS/EC2",
+      "dimension": "InstanceId (Worker)",
+      "period_seconds": 300,
+      "statistic": "Sum",
+      "unit": "Bytes",
+      "datapoints": [
+        {
+          "timestamp_utc": "2026-11-24T17:55:00Z",
+          "NetworkMirrorIn": 0,
+          "NetworkMirrorOut": 0,
+          "NetworkSkipMirrorIn": 0,
+          "NetworkSkipMirrorOut": 0
+        },
+        {
+          "timestamp_utc": "2026-11-24T18:00:00Z",
+          "NetworkMirrorIn": 685240,
+          "NetworkMirrorOut": 6979,
+          "NetworkSkipMirrorIn": 0,
+          "NetworkSkipMirrorOut": 0
+        }
+      ]
+    }
+  },
+  "qa": {
+    "source_tree": "/home/ubuntu/blueguard-v0.5.0-rc4",
+    "existing_tests": 37,
+    "new_backend_tests": 14,
+    "new_ui_smoke_tests": 3,
+    "passed": 54,
+    "failed": 0,
+    "warnings": 1,
+    "final_release_test_seconds": 1.14,
+    "warning": "StarletteDeprecationWarning: httpx with starlette.testclient deprecated",
+    "javascript_node_syntax_check": "not run (node not installed)",
+    "manual_refresh_http_check": "not independently confirmed"
+  },
+  "image": {
+    "tag": "localhost/blueguard-api:0.5.0-rc4",
+    "base_tag": "localhost/blueguard-api:0.5.0-rc3",
+    "podman_id": "f584e3091a807cf80326fc5ae31994fc903730bb3130adbbcaa6aa28971dcab0",
+    "containerd_manifest_digest": "sha256:93f833b320aaaaeac0e36ecabb458d3c796e438ed08c504294a83ff7d2192689",
+    "sha256_file_checks_passed": 24,
+    "sha256_file_checks_failed": 0,
+    "uid": 10001,
+    "gid_configured": 10001,
+    "fastapi_version": "0.163.1",
+    "required_get_routes_verified": 6,
+    "containerd_import": "pass"
+  },
+  "kubernetes": {
+    "namespace": "blueguard",
+    "node": "ip-10-20-1-10",
+    "main_deployment": "blueguard-api",
+    "canary_deployment": "blueguard-api-canary",
+    "canary_rollout": "pass",
+    "main_service_excluded_canary": true,
+    "canary_http_endpoints_passed": 7,
+    "main_rolling_update": "pass",
+    "main_http_endpoints_passed": 7,
+    "release_version_check": true,
+    "canary_deleted": true,
+    "final_pod": "blueguard-api-6cd7dbbd56-vshbz",
+    "final_pod_ip": "10.42.0.20",
+    "final_ready_replicas": 1,
+    "final_restarts": 0,
+    "service_cluster_ip": "10.43.19.117",
+    "service_port": 80,
+    "final_version": "0.5.0-rc4",
+    "final_status_timestamp_utc": "2026-11-24T18:41:45.603184Z",
+    "rollback_image_retained": "localhost/blueguard-api:0.5.0-rc3",
+    "namespace_network_policies": 0,
+    "volume_host_path": "/var/lib/blueguard/zeek",
+    "volume_read_only": true
+  },
+  "main_service_quality": {
+    "observed_at_utc_approx": "2026-11-24T18:40:40Z",
+    "policy_version": 1,
+    "scope": "available_zeek_snapshot",
+    "quality_status": "degraded",
+    "capture_fidelity": "gaps_observed",
+    "sensor_connectivity": "unknown",
+    "reasons": [
+      "snapshot_stale",
+      "snapshot_gaps_observed",
+      "ingestion_stale"
+    ],
+    "snapshot": {
+      "data_status": "stale",
+      "freshness_threshold_seconds": 900,
+      "records": 11,
+      "snapshot_updated_at_utc": "2026-11-24T18:02:00.677185Z",
+      "snapshot_age_seconds": 2319,
+      "latest_event_at_utc": "2026-11-24T17:59:40.421411Z",
+      "latest_event_age_seconds": 2459,
+      "missed_bytes_total": 9136929,
+      "missed_bytes_complete": true
+    },
+    "publisher": {
+      "publisher_status": "healthy",
+      "threshold_seconds": 300,
+      "last_success_at_utc": "2026-11-24T18:40:02.873638Z",
+      "last_success_age_seconds": 37,
+      "input_bytes": 4600,
+      "snapshot_bytes": 4600
+    },
+    "ingestion": {
+      "ingestion_status": "stale",
+      "freshness_threshold_seconds": 900,
+      "last_valid_batch_at_utc": "2026-11-24T18:01:06.125468Z",
+      "last_valid_batch_age_seconds": 2374,
+      "last_batch_new_records": 5,
+      "last_batch_duplicate_records": 0,
+      "total_records_after_batch": 11
+    }
+  },
+  "not_established": [
+    "fresh end-to-end UID trace and latency for rc4",
+    "universal absence of packet loss",
+    "live sensor connectivity",
+    "rollback execution",
+    "rc5 automated CloudWatch integration",
+    "post-release AWS shutdown or mirror-session inventory",
+    "source-identical reproducible rc4 build from uploaded repository"
+  ]
+}

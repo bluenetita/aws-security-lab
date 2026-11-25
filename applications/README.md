@@ -1,5 +1,5 @@
 # Application source
 
-[`blueguard-api/`](blueguard-api/) contains the **v0.2.0-lab** source snapshot used during early development. It includes FastAPI, static web assets, synthetic alert fixtures, tests and a historical Kubernetes manifest.
+[`blueguard-api/`](blueguard-api/) contains the **v0.4.2-lab** FastAPI source baseline, Zeek snapshot API/UI, synthetic alert fixtures, application and QA Dockerfiles, tests and Kubernetes examples. This version was confirmed in the uploaded `app/main.py`.
 
-**The deployed v0.4.2-lab source is not included.** Runtime behavior and validations for v0.4.2 are documented in [`docs/`](../docs/) but cannot be reproduced from these application files. See [source availability](../docs/source-availability.md).
+The complete deployed **v0.5.0-rc4 source is not included**. Runtime behavior and validation for rc4 are documented in [`docs/`](../docs/); the 54-test release result belongs to the EC2 development tree, not these older files. See [source inventory](../docs/source-availability.md).

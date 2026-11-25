@@ -14,8 +14,14 @@
 | Publisher | Scheduled run and file permissions | Successful timer run, mode 0440, API access | Host test output |
 | Kubernetes | Deployment rollout | `1/1 Running`, 0 restarts, v0.4.2-lab | `evidence/2026-11-19/result.json` |
 | Dashboard | Synthetic fixture update | 3 API/UI records in preview | Screenshot/API observation |
-| v0.2.0 source snapshot | Local API regression suite: **7/7 passed** (`python3 -m pytest -q` in application directory) | Current package test run; **not** v0.4.2 |
-| Full v0.4.2 live event pipeline | New mirrored connection → browser | **Not yet tested** | No evidence |
+| Historical v0.2.0 source snapshot | Local API regression suite: **7/7 passed** (earlier archive verification) | Historical report only; not a rerun of the current v0.4.2 tree or rc4 |
+| rc4 application QA | 37 existing + 14 backend + 3 UI smoke tests | **54/54 pass**, 1 warning; final version test 1.14 s | `evidence/2026-11-24/result.json` |
+| rc4 image | Source checksums, runtime identity, OpenAPI | 24/24 SHA-256; UID 10001; 6 required GET routes | Same evidence |
+| rc4 Canary | Separate selector, rollout, seven HTTP endpoints | Pass; Service retained rc3 endpoint only | Same evidence |
+| rc4 main | Rolling update, seven HTTP endpoints, release assertion | Pass; version rc4; 1/1 Ready, zero restarts after cleanup | Same evidence |
+| rc4 quality policy | Stored snapshot and component health | `degraded`, `gaps_observed`; stale snapshot/ingestion, healthy publisher | Same evidence |
+| rc4 browser | Visual check reported; manual refresh/network request not independently confirmed | Partial functional coverage | Conversation report; no browser automation results bundled |
+| Fresh end-to-end event | New mirrored UID → browser with measured latency | No complete timed rc4 trace retained | Stored batch and API observations only |
 | Wazuh integration | End-to-end Wazuh → BlueGuard | **Not implemented** | No evidence |
 
 ## Kubernetes checks (Control Plane)
@@ -60,3 +66,17 @@ sudo stat -c '%a %U:%G %s %n' /var/lib/blueguard/zeek/conn-ingested.jsonl
 A successful `oneshot` service may appear `inactive (dead)` between scheduled runs. Inspect its exit status and journal rather than treating that state alone as a failure.
 
 **No commands in this document modify runtime resources.** To start/stop EC2 or create mirroring, follow change-control procedures and [operations](operations.md).
+
+## rc4 Service and Quality Gate checks
+
+On the Control Plane, retrieve the Service IP and query the deployed API without opening a public port:
+
+```bash
+SERVICE_IP=$(sudo -n k3s kubectl -n blueguard get svc blueguard-api -o jsonpath='{.spec.clusterIP}')
+curl -fsS --max-time 10 "http://$SERVICE_IP/api/v1/status" | jq -e '.version == "0.5.0-rc4"'
+curl -fsS --max-time 10 "http://$SERVICE_IP/api/v1/telemetry/quality" | jq .
+sudo -n k3s kubectl -n blueguard get pods -o wide
+sudo -n k3s crictl images | grep -E 'blueguard-api.*0\.5\.0-rc[34]'
+```
+
+A non-healthy quality state is not automatically a failed deployment. Verify that reasons and component values match the policy, and keep unknown connectivity distinct from health/readiness. The commands above are read-only. The 54-test result refers to the EC2 development tree; this documentation update did not run the suite again.

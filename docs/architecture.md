@@ -34,13 +34,13 @@ Worker (source ENI) ---------------- TCP/18080 ----------------> Control Plane
                                        publisher (systemd, minutely)
                                                                v
                                         /var/lib/blueguard/zeek/
-                                         conn-ingested.jsonl (0440)
+                        conn-ingested.jsonl (0440) + publisher/ingestion health JSON
                                                                |
                                          read-only Kubernetes hostPath
                                                                v
                     blueguard namespace / blueguard-api Deployment (1 replica)
                            1 Pod, 1 container: FastAPI + static frontend
-                               /api/v1/zeek/connections :8080
+                       /api/v1/zeek/connections + telemetry health/quality :8080
                                              |
                         blueguard-api ClusterIP Service :80
                                              |
@@ -59,7 +59,7 @@ The traffic-mirror session must exist for the Zeek instance to observe the selec
 | Deployment | `blueguard-api`, 1 desired replica |
 | Pod | 1 container with FastAPI backend **and static frontend** |
 | Service | `blueguard-api`, `ClusterIP` (`10.43.19.117:80` at validation) |
-| Container image | `localhost/blueguard-api:0.4.2`; `imagePullPolicy: Never` |
+| Container image | `localhost/blueguard-api:0.5.0-rc4`; `imagePullPolicy: Never` |
 | Placement | `nodeSelector` targeting control-plane hostname |
 | Volume | Host `/var/lib/blueguard/zeek` mounted read-only at `/app/data/zeek` |
 | Probes | `/healthz` and `/readyz` |
@@ -72,8 +72,14 @@ The application is **not a two-Pod frontend/backend architecture**. Kubernetes o
 1. **AWS capture:** SG controls UDP/VXLAN traffic into Zeek; mirror scope is defined by the session and filter.
 2. **Zeek → Control Plane:** source-bound Ed25519 SSH identity, pinned server host key, forced receiver command, private network transport.
 3. **Receiver → application:** private writeable store is separate from a publisher-generated read-only snapshot; Pod has no direct access to receiver files.
-4. **Browser → API:** private `ClusterIP` reachable through an operator-controlled SSH tunnel. The application itself has no end-user authorization.
+4. **Browser → API:** private `ClusterIP` reachable through an operator-controlled SSH tunnel. The application itself has no end-user authorization; no NetworkPolicies were present in the namespace at review.
 
 ## Availability and data freshness
 
-There is one application replica, local hostPath data and node-local OCI images. The workload is not highly available and does not automatically fail over to another node. Collector and publisher execute approximately once per minute; the frontend refreshes at 30-second intervals when active. These are periodic snapshots, not continuous streaming.
+There is one application replica, local hostPath data and node-local OCI images. The workload is not highly available and does not automatically fail over to another node. Collector and publisher execute approximately once per minute; the Zeek connection view refreshes at 30-second intervals and the Quality Gate at 60-second intervals when active. These are periodic snapshots, not continuous streaming.
+
+## Telemetry quality layer (rc4)
+
+The API reads the same published directory for the connection snapshot, publisher heartbeat and ingestion receipt. The Quality Gate calls the three existing health functions in-process, evaluates their results with policy v1 and returns the original component assessments and reason codes. The frontend displays the result without recalculating the policy. The application does not perform direct AWS queries or probe Zeek connectivity. See [Telemetry Quality Gate](telemetry-quality.md).
+
+During release validation a separate `blueguard-api-canary` Deployment used `app=blueguard-api-canary`, the same control-plane placement and a read-only shared snapshot. The primary Service continued selecting only `app=blueguard-api`. The Canary used loopback port-forwarding and an SSH tunnel, not a public Service, and was deleted after successful promotion. This is selector separation, not complete network isolation.
