@@ -66,7 +66,7 @@ The runtime mounts the published Zeek directory read-only under `/app/data/zeek`
 
 ## Source-artifact boundary
 
-The repository contains v0.4.2-lab application source, but the complete rc4 API/UI/tests, effective manifest and installed collector/receiver/publisher sources and units are **not bundled**. This document describes observed execution, **not a complete installable rc4 release**. See [source availability](source-availability.md).
+The repository now contains the recovered rc4 API/UI/tests, aligned Kubernetes manifests and recovered collector/receiver/publisher sources and units. This document describes observed execution, **not a complete installable rc4 release**. See [source availability](source-availability.md).
 
 ## Health records and Quality Gate (rc4)
 

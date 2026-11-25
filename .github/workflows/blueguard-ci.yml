@@ -6,11 +6,15 @@ on:
     paths:
       - 'applications/blueguard-api/**'
       - '.github/workflows/blueguard-ci.yml'
+      - 'scripts/source_manifest.py'
+      - 'MANIFEST.sha256'
   push:
     branches: [main, chore/sync-blueguard-v0.4.2, chore/consolidate-blueguard-rc4]
     paths:
       - 'applications/blueguard-api/**'
       - '.github/workflows/blueguard-ci.yml'
+      - 'scripts/source_manifest.py'
+      - 'MANIFEST.sha256'
   workflow_dispatch:
 
 permissions:
@@ -31,6 +35,9 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+
+      - name: Verify source manifest
+        run: python3 scripts/source_manifest.py --check
 
       - name: Check runner tools
         shell: bash

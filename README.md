@@ -76,20 +76,27 @@ The backend and static frontend run in the **same container and Pod**. Zeek, col
 
 The historical experiments and their caveats remain in [experimental results](docs/experimental-results.md). `missed_bytes=0` applies to an observed connection, not a general guarantee. AWS skip metrics and Zeek reconstruction gaps measure different phenomena.
 
-## Source availability — important
+## Source availability
 
-The uploaded repository contains **v0.4.2-lab application source** (confirmed by `app/main.py`), Zeek API/UI files, tests, a v0.4.2 Kustomize baseline and a CI workflow. The **deployed v0.5.0-rc4 source tree and effective manifest are not fully present** in this repository. The 54 tests and image checks refer to the rc4 development tree on EC2, not the older files in this repository. The documentation update does not change application sources or deployment manifests, and does not claim that the rc4 image can be reproduced from this checkout.
+The repository now contains the recovered **v0.5.0-rc4** application sources,
+static assets, regression tests, Control Plane telemetry pipeline, Zeek collector,
+sensor configuration and aligned Kubernetes manifests.
 
-Do not apply the older Kustomize baseline to the running rc4 deployment. See [source inventory and synchronization requirements](docs/source-availability.md).
+The 54 successful tests and container checks reported above are historical
+AWS release evidence. Validation of the consolidated Git checkout through
+GitHub Actions is pending. A bit-for-bit reproducible build and a fresh
+end-to-end deployment have not yet been established.
+
+See [source inventory and remaining requirements](docs/source-availability.md).
 
 ## Repository contents
 
 | Location | Contents |
 |---|---|
-| [`applications/`](applications/) | v0.4.2-lab API source, tests and historical/current-for-that-version Kubernetes baseline |
-| [`blue-team/zeek/`](blue-team/zeek/) | Observed Zeek configuration fragments and service unit |
+| [`applications/`](applications/) | v0.5.0-rc4 API source, tests and Kubernetes laboratory baseline |
+| [`blue-team/zeek/`](blue-team/zeek/) | Recovered Zeek configuration, collector, detection policies and systemd units |
 | [`blue-team/wazuh/`](blue-team/wazuh/) | Wazuh integration scope; no deployed integration artifacts |
-| [`infrastructure/`](infrastructure/) | AWS templates and historical Kubernetes manifests |
+| [`infrastructure/`](infrastructure/) | AWS templates, Control Plane telemetry pipeline and historical Kubernetes manifests |
 | [`scripts/`](scripts/) | AWS/SSH/diagnostic helpers; review before use |
 | [`evidence/`](evidence/) | Structured lab observations and selected terminal excerpts |
 | [`docs/architecture.md`](docs/architecture.md) | Components, trust boundaries, data flow |
@@ -110,4 +117,4 @@ Do not apply the older Kustomize baseline to the running rc4 deployment. See [so
 - The bounded store (1 MiB/batch, 10 MiB and 10,000 records total) has no durable retention or high availability.
 - Review organizational policy, evidence and network metadata before external publication. Do not commit credentials, raw captures or operational stores.
 
-**Documentation baseline:** 24 November 2026, based on historical repository evidence and supplied terminal outputs. [Changelog](CHANGELOG.md).
+**Documentation baseline:** 25 November 2026, based on historical repository evidence and supplied terminal outputs. [Changelog](CHANGELOG.md).

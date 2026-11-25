@@ -14,7 +14,7 @@
 | Publisher | Scheduled run and file permissions | Successful timer run, mode 0440, API access | Host test output |
 | Kubernetes | Deployment rollout | `1/1 Running`, 0 restarts, v0.4.2-lab | `evidence/2026-11-19/result.json` |
 | Dashboard | Synthetic fixture update | 3 API/UI records in preview | Screenshot/API observation |
-| Historical v0.2.0 source snapshot | Local API regression suite: **7/7 passed** (earlier archive verification) | Historical report only; not a rerun of the current v0.4.2 tree or rc4 |
+| Historical v0.2.0 source snapshot | Local API regression suite: **7/7 passed** (earlier archive verification) | Historical report only; not a rerun of the consolidated rc4 tree |
 | rc4 application QA | 37 existing + 14 backend + 3 UI smoke tests | **54/54 pass**, 1 warning; final version test 1.14 s | `evidence/2026-11-24/result.json` |
 | rc4 image | Source checksums, runtime identity, OpenAPI | 24/24 SHA-256; UID 10001; 6 required GET routes | Same evidence |
 | rc4 Canary | Separate selector, rollout, seven HTTP endpoints | Pass; Service retained rc3 endpoint only | Same evidence |
