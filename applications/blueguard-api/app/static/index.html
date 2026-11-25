@@ -7,8 +7,16 @@
   <title>BlueGuard — Network Threat Monitoring</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/zeek.css">
+  <link rel="stylesheet" href="/static/telemetry-health.css">
+  <link rel="stylesheet" href="/static/publisher-health.css">
+  <link rel="stylesheet" href="/static/ingestion-health.css">
+  <link rel="stylesheet" href="/static/telemetry-quality.css">
   <script src="/static/app.js" defer></script>
-  <script src="/static/zeek.js?v=0.4.2-ui2" defer></script>
+  <script src="/static/zeek.js?v=0.5.0-rc4" defer></script>
+  <script src="/static/telemetry-health.js" defer></script>
+  <script src="/static/publisher-health.js" defer></script>
+  <script src="/static/ingestion-health.js" defer></script>
+  <script src="/static/telemetry-quality.js" defer></script>
 </head>
 <body>
   <div class="app-shell">
@@ -26,7 +34,7 @@
       </div>
     </aside>
     <main class="main-content">
-      <div class="topbar"><span class="crumb">Security Operations <span>/</span> Overview</span><span class="version">v0.4.2 · lab</span></div>
+      <div class="topbar"><span class="crumb">Security Operations <span>/</span> Overview</span><span class="version">v0.5.0-rc4 · lab</span></div>
       <section class="heading-row">
         <div><div class="eyebrow">NETWORK THREAT MONITORING</div><h1>Panoramica sicurezza</h1><p>Eventi di rete, stato delle fonti e analisi iniziale.</p></div>
         <button class="refresh" id="refresh" type="button">Aggiorna dati</button>
@@ -50,6 +58,202 @@
           <section class="panel detail-panel" aria-live="polite"><div class="panel-heading"><div><h2>Dettaglio evento</h2><p>Seleziona una riga per approfondire.</p></div></div><div id="detail-content" class="detail-empty">Nessun evento selezionato.</div></section>
         </aside>
       </div>
+
+      <section id="telemetry-quality"
+               class="panel telemetry-health-panel telemetry-quality-panel"
+               aria-labelledby="telemetry-quality-title">
+
+        <div class="panel-heading">
+          <div>
+            <h2 id="telemetry-quality-title">Telemetry Quality Gate</h2>
+            <p>Valutazione dello snapshot Zeek disponibile · Policy v1</p>
+          </div>
+          <span id="quality-status"
+                class="telemetry-health-state telemetry-quality-state"
+                data-state="loading"
+                role="status"
+                aria-live="polite">Verifica...</span>
+        </div>
+
+        <div class="telemetry-health-grid">
+
+          <div class="telemetry-health-metric">
+            <span>Snapshot freshness</span>
+            <strong id="quality-snapshot">—</strong>
+          </div>
+
+          <div class="telemetry-health-metric">
+            <span>Publisher health</span>
+            <strong id="quality-publisher">—</strong>
+          </div>
+
+          <div class="telemetry-health-metric">
+            <span>Ingestion health</span>
+            <strong id="quality-ingestion">—</strong>
+          </div>
+
+          <div class="telemetry-health-metric">
+            <span>Capture fidelity</span>
+            <strong id="quality-capture">—</strong>
+          </div>
+
+          <div class="telemetry-health-metric">
+            <span>Missed bytes nello snapshot</span>
+            <strong id="quality-missed">—</strong>
+          </div>
+
+          <div class="telemetry-health-metric">
+            <span>Connettività sensore</span>
+            <strong id="quality-sensor">Non verificata</strong>
+          </div>
+
+        </div>
+
+        <div class="telemetry-quality-assessment">
+          <h3>Quality assessment</h3>
+          <ul id="quality-reasons" aria-live="polite">
+            <li>Valutazione in corso.</li>
+          </ul>
+        </div>
+
+        <div class="telemetry-health-footer">
+          <span id="quality-note">
+            La valutazione riguarda lo snapshot disponibile,
+            non la connettività live del sensore.
+          </span>
+          <button type="button"
+                  id="quality-refresh"
+                  class="zeek-reset">Aggiorna qualità</button>
+        </div>
+
+      </section>
+
+            <section id="telemetry-health" class="panel telemetry-health-panel" aria-labelledby="telemetry-health-title">
+              <div class="panel-heading">
+                <div>
+                  <h2 id="telemetry-health-title">Telemetry Health · Zeek</h2>
+                  <p>Freschezza dello snapshot acquisito. Non e una verifica della connettivita del sensore.</p>
+                </div>
+                <span id="telemetry-health-state" class="telemetry-health-state" role="status" aria-live="polite">Verifica...</span>
+              </div>
+              <div class="telemetry-health-grid">
+                <div class="telemetry-health-metric"><span>Connessioni nello snapshot</span><strong id="telemetry-records">—</strong></div>
+                <div class="telemetry-health-metric"><span>Ultima pubblicazione file (UTC)</span><strong id="telemetry-snapshot-updated">—</strong></div>
+                <div class="telemetry-health-metric"><span>Eta dello snapshot</span><strong id="telemetry-snapshot-age">—</strong></div>
+                <div class="telemetry-health-metric"><span>Ultimo evento Zeek (UTC)</span><strong id="telemetry-last-event">—</strong></div>
+                <div class="telemetry-health-metric"><span>Eta ultimo evento</span><strong id="telemetry-event-age">—</strong></div>
+                <div class="telemetry-health-metric"><span>Missed bytes (gap osservati)</span><strong id="telemetry-capture">—</strong></div>
+              </div>
+
+              <div class="publisher-health"
+                   aria-label="Stato del publisher Zeek">
+
+                <div class="publisher-health-top">
+                  <span class="publisher-health-heading">
+                    Publisher Zeek
+                  </span>
+
+                  <span id="publisher-health-status"
+                        class="publisher-health-status"
+                        data-state="unavailable"
+                        role="status"
+                        aria-live="polite">
+                    Verifica...
+                  </span>
+                </div>
+
+                <div class="publisher-health-fields">
+
+                  <div class="publisher-health-field">
+                    <span>Ultimo successo (UTC)</span>
+                    <strong id="publisher-last-success">—</strong>
+                  </div>
+
+                  <div class="publisher-health-field">
+                    <span>Tempo dall'ultimo successo</span>
+                    <strong id="publisher-success-age">—</strong>
+                  </div>
+
+                  <div class="publisher-health-field">
+                    <span>Connettività sensore</span>
+                    <strong id="publisher-sensor-state">
+                      Non verificato
+                    </strong>
+                  </div>
+
+                </div>
+
+                <p id="publisher-health-note"
+                   class="publisher-health-note">
+                  Verifica dello stato del publisher in corso.
+                </p>
+
+              </div>
+
+
+              <div class="publisher-health ingestion-health"
+                   aria-label="Stato della ricezione Zeek">
+
+                <div class="publisher-health-top">
+                  <span class="publisher-health-heading">
+                    Ingestion Zeek
+                  </span>
+
+                  <span id="ingestion-health-status"
+                        class="publisher-health-status"
+                        data-state="loading"
+                        role="status"
+                        aria-live="polite">
+                    Verifica...
+                  </span>
+                </div>
+
+                <div class="publisher-health-fields">
+
+                  <div class="publisher-health-field">
+                    <span>Ultimo batch valido (UTC)</span>
+                    <strong id="ingestion-last-batch">—</strong>
+                  </div>
+
+                  <div class="publisher-health-field">
+                    <span>Tempo dall'ultima ricezione</span>
+                    <strong id="ingestion-batch-age">—</strong>
+                  </div>
+
+                  <div class="publisher-health-field">
+                    <span>Nuovi record nell'ultimo batch</span>
+                    <strong id="ingestion-new-records">—</strong>
+                  </div>
+
+                  <div class="publisher-health-field">
+                    <span>Duplicati nell'ultimo batch</span>
+                    <strong id="ingestion-duplicates">—</strong>
+                  </div>
+
+                  <div class="publisher-health-field">
+                    <span>Totale record nell'archivio</span>
+                    <strong id="ingestion-total-records">—</strong>
+                  </div>
+
+                  <div class="publisher-health-field">
+                    <span>Ultima modifica archivio (UTC)</span>
+                    <strong id="ingestion-store-updated">—</strong>
+                  </div>
+
+                </div>
+
+                <p id="ingestion-health-note"
+                   class="publisher-health-note">
+                  Verifica della ricezione in corso.
+                </p>
+
+              </div>
+
+              <div class="telemetry-health-footer">
+                <span id="telemetry-health-note">L'API e il sensore sono controlli indipendenti.</span>
+                <button type="button" id="telemetry-health-refresh" class="zeek-reset">Aggiorna stato</button>
+              </div>
+            </section>
             <section id="zeek-connections" class="panel zeek-panel" aria-labelledby="zeek-title">
         <div class="panel-heading">
           <div>

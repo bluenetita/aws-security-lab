@@ -1,0 +1,15 @@
+.ingestion-health {
+  border-color: #31506a;
+}
+
+.ingestion-health .publisher-health-status[data-state="recent"] {
+  color: #b7f3d6;
+  background: #17392d;
+  border-color: #2b7757;
+}
+
+.ingestion-health .publisher-health-status[data-state="loading"] {
+  color: #d5deeb;
+  background: transparent;
+  border-color: #59677e;
+}

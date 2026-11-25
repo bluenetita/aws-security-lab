@@ -9,9 +9,13 @@ from fastapi.staticfiles import StaticFiles
 from .schemas import Alert, AlertPage, Severity, Status, Summary
 from .store import load_demo_alerts
 from .zeek_api import router as zeek_router
+from .telemetry_health import router as telemetry_router
+from .publisher_health import router as publisher_router
+from .ingestion_health import router as ingestion_router
+from .telemetry_quality import router as quality_router
 from .zeek import get_zeek_snapshot
 
-VERSION = "0.4.2-lab"
+VERSION = "0.5.0-rc4"
 BASE = Path(__file__).resolve().parent
 ALERTS = load_demo_alerts()
 
@@ -26,6 +30,10 @@ app = FastAPI(
 )
 app.mount("/static", StaticFiles(directory=BASE / "static"), name="static")
 app.include_router(zeek_router)
+app.include_router(telemetry_router)
+app.include_router(publisher_router)
+app.include_router(ingestion_router)
+app.include_router(quality_router)
 
 
 @app.middleware("http")

@@ -1,0 +1,95 @@
+/* BlueGuard - Telemetry Quality Gate */
+
+.telemetry-quality-panel {
+  margin-top: 18px;
+}
+
+.telemetry-quality-state[data-state="healthy"] {
+  color: #b7f3d6;
+  border-color: #2b7757;
+  background: #17392d;
+}
+
+.telemetry-quality-state[data-state="degraded"] {
+  color: #ffdfa6;
+  border-color: #8d6424;
+  background: #3c2b18;
+}
+
+.telemetry-quality-state[data-state="critical"] {
+  color: #ffb8b8;
+  border-color: #95444c;
+  background: #3d2429;
+}
+
+.telemetry-quality-state[data-state="unknown"],
+.telemetry-quality-state[data-state="loading"] {
+  color: #c2cddd;
+  border-color: #40526a;
+  background: #23354b;
+}
+
+.telemetry-quality-state[data-state="error"] {
+  color: #ffdfa6;
+  border-color: #8d6424;
+  background: #3c2b18;
+}
+
+.telemetry-quality-panel strong[data-state="fresh"],
+.telemetry-quality-panel strong[data-state="healthy"],
+.telemetry-quality-panel strong[data-state="recent"],
+.telemetry-quality-panel strong[data-state="no_observed_gaps"] {
+  color: #b7f3d6;
+}
+
+.telemetry-quality-panel strong[data-state="stale"] {
+  color: #ffdfa6;
+}
+
+.telemetry-quality-panel strong[data-state="gaps_observed"] {
+  color: #ffb8b8;
+}
+
+.telemetry-quality-panel strong[data-state="unknown"],
+.telemetry-quality-panel strong[data-state="unavailable"] {
+  color: #98aac1;
+}
+
+.telemetry-quality-assessment {
+  margin: 0 20px 18px;
+  padding: 14px 16px;
+  border: 1px solid #293a4e;
+  border-radius: 9px;
+  background: #0e1929;
+}
+
+.telemetry-quality-assessment h3 {
+  margin: 0 0 10px;
+  color: #e9eef9;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.telemetry-quality-assessment ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #b9c7da;
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.telemetry-quality-assessment li + li {
+  margin-top: 4px;
+}
+
+.telemetry-quality-panel button:disabled {
+  opacity: .6;
+  cursor: wait;
+}
+
+@media (max-width: 600px) {
+  .telemetry-quality-state {
+    white-space: normal;
+  }
+}
