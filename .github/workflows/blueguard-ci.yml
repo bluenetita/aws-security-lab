@@ -7,7 +7,7 @@ on:
       - 'applications/blueguard-api/**'
       - '.github/workflows/blueguard-ci.yml'
   push:
-    branches: [main, chore/sync-blueguard-v0.4.2]
+    branches: [main, chore/sync-blueguard-v0.4.2, chore/consolidate-blueguard-rc4]
     paths:
       - 'applications/blueguard-api/**'
       - '.github/workflows/blueguard-ci.yml'
@@ -71,7 +71,7 @@ jobs:
           test "$(yq -r 'select(.kind == "Service") | .metadata.name' "$manifest")" = "blueguard-api"
           test "$(yq -r 'select(.kind == "Service") | .spec.type' "$manifest")" = "ClusterIP"
           test "$(yq -r 'select(.kind == "Deployment") | .metadata.name' "$manifest")" = "blueguard-api"
-          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image' "$manifest")" = "localhost/blueguard-api:0.4.2"
+          test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].image' "$manifest")" = "localhost/blueguard-api:0.5.0-rc4"
           test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem' "$manifest")" = "true"
           test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation' "$manifest")" = "false"
           test "$(yq -r 'select(.kind == "Deployment") | .spec.template.spec.nodeSelector."kubernetes.io/hostname"' "$manifest")" = "ip-10-20-1-10"

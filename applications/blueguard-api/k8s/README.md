@@ -1,6 +1,6 @@
-# BlueGuard v0.4.2 Kubernetes baseline (AWS k3s laboratory)
+# BlueGuard v0.5.0-rc4 Kubernetes baseline (AWS k3s laboratory)
 
-This directory describes the **v0.4.2 repository baseline**, not the deployed v0.5.0-rc4 configuration. Do not apply it over the running release; see [rc4 release evidence](../../../docs/telemetry-quality.md).
+This directory describes the reconstructed **v0.5.0-rc4 laboratory baseline**. CI and end-to-end validation are pending. See [rc4 release evidence](../../../docs/telemetry-quality.md).
 
 ## Structure
 
@@ -14,7 +14,7 @@ This directory describes the **v0.4.2 repository baseline**, not the deployed v0
 ## Safety and limitations
 
 - No resource has been applied by this package.
-- This baseline still requires `localhost/blueguard-api:0.4.2` already present on the **control-plane** node (`imagePullPolicy: Never`).
+- This baseline still requires `localhost/blueguard-api:0.5.0-rc4` already present on the **control-plane** node (`imagePullPolicy: Never`).
 - The API is deliberately pinned to `ip-10-20-1-10`; `hostPath` is local to that node.
 - `hostPath` is for this laboratory only. It is not acceptable as a generic production persistence strategy.
 - The baseline Deployment is not multi-node highly available. A CI workflow is present in the repository, but no successful run or continuous deployment is asserted here. The observed rc4 namespace had no NetworkPolicies.

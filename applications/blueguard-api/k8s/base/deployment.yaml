@@ -1,4 +1,4 @@
-# v0.4.2 compatibility baseline. The image is intentionally still node-local.
+# v0.5.0-rc4 laboratory baseline. The image is intentionally still node-local.
 # Do not apply the base by itself: the current API requires the Zeek snapshot mount.
 apiVersion: apps/v1
 kind: Deployment
@@ -27,7 +27,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: api
-          image: localhost/blueguard-api:0.4.2
+          image: localhost/blueguard-api:0.5.0-rc4
           imagePullPolicy: Never
           ports:
             - name: http
