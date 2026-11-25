@@ -38,11 +38,19 @@ The historical rc3 rollback source was not imported as part of this recovery.
 
 ## Validation status
 
-The original rc4 release passed 54 tests on AWS.
-The consolidated repository has not yet passed a fresh CI run.
+The original rc4 release passed 54 tests on AWS. Separately, the project owner
+reports that BlueGuard CI run #3 succeeded in 36 seconds on consolidated commit
+`caa8ce1`: 54 tests passed with one warning in 0.54 seconds, 143 canonical Git
+checksums were verified, the QA and application images built, and the
+Kustomize render and configured baseline checks passed. The earlier CI run #2
+failed because tests were excluded from the Docker build context; adding
+`applications/blueguard-api/Dockerfile.test.dockerignore` resolved that issue.
+The remaining `StarletteDeprecationWarning` concerning `httpx` and `TestClient`
+is technical debt. These CI results apply to `caa8ce1`, not to later
+documentation changes.
 
-Kustomize rendering has succeeded locally. No deployment was performed during
-the consolidation.
+Kustomize rendering also succeeded locally during consolidation. No deployment
+was performed during the consolidation or by the CI workflow.
 
 All four laboratory EC2 instances were confirmed stopped on 25 November,
 with no Traffic Mirroring sessions remaining in the inspected region.
@@ -69,10 +77,10 @@ the application.
 ## Remaining requirements
 
 1. Review source and evidence for confidential information before publication.
-2. Execute the application regression suite and OCI builds through CI.
-3. Pin the base image digest and transitive dependencies.
-4. Validate the recovered host scripts and Zeek policies.
-5. Implement reproducible provisioning and deployment procedures.
-6. Perform controlled end-to-end validation.
+2. Pin the base image digest and transitive dependencies; establish bit-for-bit image reproducibility.
+3. Validate the recovered host pipeline and Zeek policies.
+4. Implement reproducible provisioning and deployment procedures.
+5. Perform controlled, fresh end-to-end AWS validation.
+6. Resolve the `httpx`/`TestClient` deprecation and assess image scanning and provenance.
 
 This repository remains a laboratory baseline, not a production-ready release.

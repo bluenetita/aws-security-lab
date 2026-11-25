@@ -28,6 +28,6 @@ python -m pip install -r requirements-dev.txt
 python -m pytest -q
 ```
 
-The original rc4 release passed 54 tests on AWS. Fresh validation of the consolidated source through GitHub Actions is pending. Running the API requires an appropriate approved Zeek snapshot or fixture as configured by `BLUEGUARD_ZEEK_FILE`; a missing snapshot can make readiness fail. For an authorized lab-only preview, run `uvicorn app.main:app --host 127.0.0.1 --port 8080`. No public exposure: the application lacks end-user authentication and authorization.
+The original rc4 release passed 54 tests on AWS. Separately, the project owner reports that BlueGuard CI run #3 validated the consolidated application baseline at `caa8ce1`: 54 tests passed with one `StarletteDeprecationWarning` concerning `httpx` and `TestClient`; the QA and application container builds and Kustomize checks succeeded. This CI result does not validate subsequent documentation changes or fresh end-to-end AWS behavior. Running the API requires an appropriate approved Zeek snapshot or fixture as configured by `BLUEGUARD_ZEEK_FILE`; a missing snapshot can make readiness fail. For an authorized lab-only preview, run `uvicorn app.main:app --host 127.0.0.1 --port 8080`. No public exposure: the application lacks end-user authentication and authorization.
 
 **Do not apply the historical manifests to replace the deployed rc4 environment.** See [source inventory](../../docs/source-availability.md) and [rc4 quality policy](../../docs/telemetry-quality.md).

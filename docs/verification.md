@@ -24,6 +24,29 @@
 | Fresh end-to-end event | New mirrored UID → browser with measured latency | No complete timed rc4 trace retained | Stored batch and API observations only |
 | Wazuh integration | End-to-end Wazuh → BlueGuard | **Not implemented** | No evidence |
 
+## Consolidated repository CI
+
+The project owner reports that **BlueGuard CI run #3** succeeded on commit
+`caa8ce1` (`chore/consolidate-blueguard-rc4`) in **36 seconds**. This record is
+based on the supplied run results; the GitHub Actions run was not queried or
+rerun for this documentation update.
+
+| Check | Reported result | Scope |
+|---|---|---|
+| Regression suite | **54 passed, 1 warning in 0.54 seconds** | Consolidated application source at `caa8ce1`; the warning is a `StarletteDeprecationWarning` concerning `httpx` and `TestClient`. |
+| Source integrity manifest | **143 canonical Git checksums verified** | Indexed source at `caa8ce1`. |
+| QA container build | Successful | Repository CI build, not a deployment. |
+| Application container build | Successful | Repository CI build, not a published image or a reproducibility test. |
+| Kustomize | Rendering and configured baseline checks successful | Control-plane lab overlay; no apply or fresh deployment test. |
+
+CI run #2 failed because tests were excluded from the Docker build context.
+`applications/blueguard-api/Dockerfile.test.dockerignore` resolved that issue,
+according to the project owner. The deprecation warning remains technical
+debt. Run #3 validates the application baseline at `caa8ce1`; it does not
+validate later documentation changes, the recovered host pipeline or Zeek
+policies, reproducible provisioning, bit-for-bit image reproducibility, or a
+fresh end-to-end AWS trace.
+
 ## Kubernetes checks (Control Plane)
 
 Read-only commands to execute on the **Control Plane EC2**, after confirming the VM is running:
@@ -79,4 +102,4 @@ sudo -n k3s kubectl -n blueguard get pods -o wide
 sudo -n k3s crictl images | grep -E 'blueguard-api.*0\.5\.0-rc[34]'
 ```
 
-A non-healthy quality state is not automatically a failed deployment. Verify that reasons and component values match the policy, and keep unknown connectivity distinct from health/readiness. The commands above are read-only. The 54-test result refers to the EC2 development tree; this documentation update did not run the suite again.
+A non-healthy quality state is not automatically a failed deployment. Verify that reasons and component values match the policy, and keep unknown connectivity distinct from health/readiness. The commands above are read-only. The earlier rc4 application QA row refers to the EC2 development tree; the separate consolidated repository CI result above refers to `caa8ce1`. This documentation update did not run the suite again.

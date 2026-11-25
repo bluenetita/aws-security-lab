@@ -25,7 +25,7 @@ An unauthorized SSH command (`id`) was rejected with exit code 126 in the restri
 - Production TLS termination, customer access gateway, network policy and end-to-end access auditing.
 - Backup/restore with recovery objectives, automated retention and secure data erasure.
 - Automated alerting for ingestion lag, collector/publisher failures, file limits or unexpected sensor silence. rc4 exposes quality/health assessments but does not alert or verify sensor connectivity.
-- Source-synchronized CI/CD, vulnerability scanning, image provenance, registry and immutable image-digest deployment. The CI workflow is aligned with rc4; no successful run of the consolidated revision has yet been verified.
+- Continuous deployment, vulnerability scanning, image provenance, registry and immutable image-digest deployment. The project owner reports that BlueGuard CI run #3 passed on consolidated commit `caa8ce1`, but CI did not deploy or validate the recovered host pipeline, Zeek policies, or fresh end-to-end AWS behavior.
 - Validated detection/correlation rules and Wazuh ingestion into BlueGuard.
 
 **Deployment constraint:** do not publish the current API via a public LoadBalancer or Ingress until authentication and authorization are implemented. The presence of synthetic alerts must not be presented as detection evidence.

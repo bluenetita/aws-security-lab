@@ -83,11 +83,16 @@ static assets, regression tests, Control Plane telemetry pipeline, Zeek collecto
 sensor configuration and aligned Kubernetes manifests.
 
 The 54 successful tests and container checks reported above are historical
-AWS release evidence. Validation of the consolidated Git checkout through
-GitHub Actions is pending. A bit-for-bit reproducible build and a fresh
-end-to-end deployment have not yet been established.
+AWS release evidence. Separately, the project owner reports that BlueGuard CI
+run #3 succeeded on consolidated commit `caa8ce1`: 54 regression tests passed
+with one warning, the QA and application images built, 143 canonical Git
+checksums were verified, and the Kustomize baseline checks passed. This CI
+result applies to that commit, not to subsequent documentation changes. A
+bit-for-bit reproducible build and fresh end-to-end AWS validation have not
+been established.
 
-See [source inventory and remaining requirements](docs/source-availability.md).
+See [source inventory and remaining requirements](docs/source-availability.md)
+and [current project state](docs/PROJECT_STATE.md).
 
 ## Repository contents
 
@@ -117,4 +122,4 @@ See [source inventory and remaining requirements](docs/source-availability.md).
 - The bounded store (1 MiB/batch, 10 MiB and 10,000 records total) has no durable retention or high availability.
 - Review organizational policy, evidence and network metadata before external publication. Do not commit credentials, raw captures or operational stores.
 
-**Documentation baseline:** 25 November 2026, based on historical repository evidence and supplied terminal outputs. [Changelog](CHANGELOG.md).
+**Documentation baseline:** 25 November 2026, based on historical repository evidence, supplied terminal outputs, and the project-owner CI report for `caa8ce1`. [Changelog](CHANGELOG.md).

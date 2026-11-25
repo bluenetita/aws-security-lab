@@ -1,15 +1,15 @@
 # BlueGuard release roadmap
 
-Status as of the final 24 November 2026 checkpoint. Future version identifiers and sequence are planning decisions, not guaranteed delivery dates.
+Release observations below are from the final 24 November 2026 checkpoint. The consolidated application baseline was subsequently validated by the project-owner-reported BlueGuard CI run #3 on `caa8ce1`. Future version identifiers and sequence are planning decisions, not guaranteed delivery dates.
 
 | Release / milestone | Scope | Status |
 |---|---|---|
 | v0.5.0-rc1 | Snapshot freshness | Implemented in deployed lineage |
 | v0.5.0-rc2 | Publisher heartbeat monitoring | Implemented in deployed lineage |
 | v0.5.0-rc3 | Ingestion receipt and freshness | Implemented; rollback image retained |
-| v0.5.0-rc4 | Telemetry Quality Gate, API and dashboard | Deployed; 54 tests passed; Canary removed |
+| v0.5.0-rc4 | Telemetry Quality Gate, API and dashboard | Historically deployed; 54 release tests passed; Canary removed; consolidated application baseline passed CI at `caa8ce1` |
 | v0.5.0-rc5 | AWS CloudWatch metrics and mirroring inventory | **Planned, not implemented** |
-| v0.5.0 | Stable lab release | Planned: source sync, reproducible build, hardening and validation |
+| v0.5.0 | Stable lab release | Planned: reproducible build and provisioning, hardening, host validation and fresh end-to-end validation |
 | v0.6.0 | Detection engine | Planned, no validated detection capability yet |
 
 ## rc5 acceptance criteria (proposed)
@@ -21,4 +21,4 @@ Status as of the final 24 November 2026 checkpoint. Future version identifiers a
 - Add a read-only API and dashboard panel before extending the Quality Gate. Do not sum AWS skipped bytes and Zeek `missed_bytes` or suppress security alerts.
 - Add tests, run regression suite, build and validate an isolated Canary; retain rollback and confirm cleanup.
 
-Before stable release: synchronize the real rc4+ source and manifests, review dependency/image provenance, implement appropriate network policies and access controls, improve snapshot consistency and perform timed full-path and recovery tests. The scope remains a lab until the required production controls and evidence exist.
+Before stable release: validate the recovered host pipeline and Zeek policies, establish reproducible provisioning and image builds, review dependency/image provenance, implement appropriate network policies and access controls, improve snapshot consistency, and perform timed full-path and recovery tests. CI success on `caa8ce1` does not establish those results or validate later documentation changes. The scope remains a lab until the required production controls and evidence exist.

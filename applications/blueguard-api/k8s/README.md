@@ -1,6 +1,6 @@
 # BlueGuard v0.5.0-rc4 Kubernetes baseline (AWS k3s laboratory)
 
-This directory describes the reconstructed **v0.5.0-rc4 laboratory baseline**. CI and end-to-end validation are pending. See [rc4 release evidence](../../../docs/telemetry-quality.md).
+This directory describes the reconstructed **v0.5.0-rc4 laboratory baseline**. The project owner reports successful Kustomize rendering and configured baseline checks in BlueGuard CI run #3 on `caa8ce1`. Fresh end-to-end deployment validation remains pending. See [rc4 release evidence](../../../docs/telemetry-quality.md) and [project state](../../../docs/PROJECT_STATE.md).
 
 ## Structure
 
@@ -17,7 +17,7 @@ This directory describes the reconstructed **v0.5.0-rc4 laboratory baseline**. C
 - This baseline still requires `localhost/blueguard-api:0.5.0-rc4` already present on the **control-plane** node (`imagePullPolicy: Never`).
 - The API is deliberately pinned to `ip-10-20-1-10`; `hostPath` is local to that node.
 - `hostPath` is for this laboratory only. It is not acceptable as a generic production persistence strategy.
-- The baseline Deployment is not multi-node highly available. A CI workflow is present in the repository, but no successful run or continuous deployment is asserted here. The observed rc4 namespace had no NetworkPolicies.
+- The baseline Deployment is not multi-node highly available. CI run #3 checked the rendered lab overlay at `caa8ce1`, according to the project owner; continuous deployment and a fresh apply were not validated. The observed rc4 namespace had no NetworkPolicies.
 - The current demo API lacks authentication: keep it private; do **not** expose it through a public Ingress or LoadBalancer.
 - A healthy API process does not imply fresh Zeek data. The Zeek sensor may be stopped while the snapshot still exists.
 
@@ -41,5 +41,5 @@ sudo k3s kubectl diff -k /path/to/k8s/overlays/control-plane
 
 1. Publish immutable container images in an OCI registry and remove the node-local image dependency.
 2. Replace the node-local Zeek snapshot `hostPath` with a persistent ingest/data layer.
-3. Introduce workload identity, access controls, NetworkPolicies, CI/CD, and tested rollback.
-4. Synchronize rc4 sources/manifests and CI; health and quality monitoring already exist in the deployed rc4. See [roadmap](../../../docs/roadmap.md).
+3. Introduce workload identity, access controls, NetworkPolicies, deployment automation, and tested rollback.
+4. Validate the recovered host pipeline and Zeek policies, then perform a separately authorized fresh end-to-end test. Health and quality monitoring already exist in the historical deployed rc4. See [roadmap](../../../docs/roadmap.md).
