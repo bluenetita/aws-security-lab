@@ -1,0 +1,267 @@
+#!/usr/bin/env python3
+"""BlueGuard lab v0.4.0: incremental Zeek conn.log collector over forced-command SSH.
+
+Sends only complete JSONL lines; commits state after verified receiver ACKs.
+Archived gzip files are processed with per-file line checkpoints; the current
+file is tracked by device, inode and byte offset. The receiver remains the
+authority for deduplication. Requires no third-party Python modules.
+"""
+import argparse
+import datetime as dt
+import fcntl
+import gzip
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+MAX_LINE = 65536
+BATCH_BYTES = 128 * 1024
+BATCH_RECORDS = 100
+MAX_LINES_PER_RUN = 2000
+ACK = re.compile(r"^OK new=(\d+) duplicates=(\d+) total=(\d+)\s*$")
+DATE_DIR = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+SSH = [
+    "/usr/bin/ssh", "-T", "-i", "/var/lib/blueguard-sender/.ssh/id_ed25519",
+    "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+    "-o", "PasswordAuthentication=no", "-o", "StrictHostKeyChecking=yes",
+    "-o", "UserKnownHostsFile=/etc/blueguard/known_hosts",
+    "-o", "GlobalKnownHostsFile=/dev/null",
+    "-o", "ConnectTimeout=5", "-o", "ConnectionAttempts=1",
+    "-o", "ServerAliveInterval=5", "-o", "ServerAliveCountMax=2",
+    "blueguard-ingest@10.20.1.10", "ingest",
+]
+
+
+def atomic_json(path, obj):
+    """Commit sender checkpoint; fsync file and directory before proceeding."""
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    tmp_name = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=".state-", delete=False
+        ) as f:
+            tmp_name = f.name
+            os.chmod(tmp_name, 0o600)
+            json.dump(obj, f, separators=(",", ":"), sort_keys=True)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_name, path)
+        tmp_name = None
+        fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    finally:
+        if tmp_name and os.path.exists(tmp_name):
+            os.unlink(tmp_name)
+
+
+def read_state(path):
+    if not path.exists():
+        return {"version": 1, "archives": {}, "active": None}
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if (not isinstance(raw, dict) or raw.get("version") != 1
+            or not isinstance(raw.get("archives"), dict)
+            or (raw.get("active") is not None and
+                not isinstance(raw.get("active"), dict))):
+        raise ValueError("Invalid sender state file (manual intervention required)")
+    return raw
+
+
+def send_batch(payload, num_lines):
+    if not 1 <= num_lines <= BATCH_RECORDS or len(payload) > BATCH_BYTES:
+        raise ValueError("Invalid sender batch")
+    try:
+        result = subprocess.run(SSH, input=payload, capture_output=True, timeout=30, check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("SSH receiver did not acknowledge within 30 seconds") from exc
+    out = result.stdout.decode("utf-8", "replace").strip()
+    if result.returncode != 0:
+        reason = result.stderr.decode("utf-8", "replace").strip()[-350:]
+        raise RuntimeError(f"SSH ingestion failed rc={result.returncode}: {reason}")
+    match = ACK.fullmatch(out)
+    if not match:
+        raise RuntimeError(f"Unrecognized receiver acknowledgment: {out[:200]!r}")
+    new, dup, total = map(int, match.groups())
+    if new + dup != num_lines:
+        raise RuntimeError("Receiver acknowledged the wrong number of records")
+    print(f"ACK new={new} duplicates={dup} store_total={total}", flush=True)
+
+
+class Collector:
+    def __init__(self, root, state_dir, start_date, sender=send_batch):
+        self.root = Path(root)
+        self.state_file = Path(state_dir) / "state.json"
+        self.start_date = start_date
+        self.sender = sender
+        self.state = read_state(self.state_file)
+        self.sent = 0
+
+    def save(self):
+        atomic_json(self.state_file, self.state)
+
+    @staticmethod
+    def safe_line(line, file_name):
+        if len(line) > MAX_LINE or not line.endswith(b"\n"):
+            raise ValueError(f"Oversized or incomplete JSONL line in {file_name}")
+        if not line.strip():
+            return False
+        # Validate syntax before shipping; receiver still validates semantics.
+        if not isinstance(json.loads(line), dict):
+            raise ValueError(f"Expected JSON object in {file_name}")
+        return True
+
+    def send_lines(self, lines, commit):
+        if not lines:
+            commit()
+            return
+        self.sender(b"".join(lines), len(lines))
+        commit()  # State advances ONLY after validated remote ACK.
+        self.sent += len(lines)
+
+    def archives(self):
+        result = []
+        for folder in self.root.iterdir():
+            if not folder.is_dir() or not DATE_DIR.fullmatch(folder.name):
+                continue
+            if folder.name < self.start_date:
+                continue
+            result.extend(folder.glob("conn.*.log.gz"))
+        return sorted(result, key=lambda p: (p.parent.name, p.name))
+
+    def process_archive(self, path):
+        key = str(path)
+        st = path.stat()
+        fingerprint = [st.st_size, st.st_mtime_ns]
+        entry = self.state["archives"].get(key)
+        if not isinstance(entry, dict) or entry.get("fingerprint") != fingerprint:
+            entry = {"fingerprint": fingerprint, "lines": 0, "complete": False}
+            self.state["archives"][key] = entry
+        if entry["complete"]:
+            return True
+        skipped = int(entry["lines"])
+        count = 0
+        batch, size = [], 0
+
+        with gzip.open(path, "rb") as stream:
+            for line_num, line in enumerate(iter(lambda: stream.readline(MAX_LINE + 1), b""), start=1):
+                if len(line) > MAX_LINE:
+                    raise ValueError(f"Oversized line in {path}")
+                if line_num <= skipped:
+                    continue
+                meaningful = self.safe_line(line, str(path))
+                if meaningful and (size + len(line) > BATCH_BYTES or len(batch) >= BATCH_RECORDS):
+                    accepted_through = line_num - 1
+                    self.send_lines(batch, lambda n=accepted_through: self.commit_archive(key, entry, n))
+                    batch, size = [], 0
+                if meaningful:
+                    batch.append(line)
+                    size += len(line)
+                count += 1
+                if count >= MAX_LINES_PER_RUN:
+                    self.send_lines(batch, lambda n=line_num: self.commit_archive(key, entry, n))
+                    return False
+            self.send_lines(batch, lambda n=line_num if (skipped or count) else 0:
+                            self.commit_archive(key, entry, n, complete=True))
+        return True
+
+    def commit_archive(self, key, entry, lines, complete=False):
+        entry["lines"] = lines
+        entry["complete"] = complete
+        self.state["archives"][key] = entry
+        self.save()
+
+    def process_current(self):
+        path = self.root / "current" / "conn.log"
+        try:
+            with path.open("rb") as stream:
+                st = os.fstat(stream.fileno())
+                existing = self.state.get("active")
+                if (not isinstance(existing, dict) or existing.get("dev") != st.st_dev
+                        or existing.get("ino") != st.st_ino or existing.get("offset", 0) > st.st_size):
+                    existing = {"dev": st.st_dev, "ino": st.st_ino, "offset": 0}
+                stream.seek(existing["offset"])
+                batch, size, count = [], 0, 0
+                checkpoint = stream.tell()
+                while count < MAX_LINES_PER_RUN:
+                    line = stream.readline(MAX_LINE + 1)
+                    if not line:
+                        break
+                    if not line.endswith(b"\n"):
+                        # Writer may be in the middle of a JSON line.
+                        if len(line) > MAX_LINE:
+                            raise ValueError("Oversized current Zeek line")
+                        break
+                    meaningful = self.safe_line(line, str(path))
+                    if meaningful and (size + len(line) > BATCH_BYTES or len(batch) >= BATCH_RECORDS):
+                        self.send_lines(batch, lambda pos=checkpoint:
+                                        self.commit_current(existing, pos))
+                        batch, size = [], 0
+                    checkpoint = stream.tell()
+                    if meaningful:
+                        batch.append(line)
+                        size += len(line)
+                    count += 1
+                self.send_lines(batch, lambda pos=checkpoint:
+                                self.commit_current(existing, pos))
+        except FileNotFoundError:
+            print("Current conn.log absent (not an error)")
+
+    def commit_current(self, entry, offset):
+        entry["offset"] = offset
+        self.state["active"] = entry
+        self.save()
+
+    def run(self):
+        archived = self.archives()
+        print(f"Archived files eligible: {len(archived)}")
+        for path in archived:
+            if not self.process_archive(path):
+                print("Archive batch limit reached; continuation on next run")
+                break
+        else:
+            self.process_current()
+        print(f"Sender records acknowledged this run: {self.sent}")
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--log-root", default="/opt/zeek/logs")
+    parser.add_argument("--state-dir", default="/var/lib/blueguard-sender/state")
+    parser.add_argument("--start-date", required=True, help="YYYY-MM-DD: ignore older archives")
+    parser.add_argument("--dry-run", action="store_true", help="List sources without sending or saving state")
+    args = parser.parse_args(argv)
+    dt.date.fromisoformat(args.start_date)
+    root = Path(args.log_root)
+    if not root.is_dir():
+        raise ValueError("Zeek log root unavailable")
+    if args.dry_run:
+        all_archives = Collector(root, args.state_dir, args.start_date).archives()
+        print(f"Eligible archived files: {len(all_archives)}")
+        for item in all_archives[:20]:
+            print("  ", item)
+        print("Current conn.log:", (root / "current" / "conn.log").is_file())
+        return
+    state_dir = Path(args.state_dir)
+    state_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+    with (state_dir / ".collector.lock").open("a+b") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as exc:
+            raise RuntimeError("Another collector invocation is already running") from exc
+        Collector(root, state_dir, args.start_date).run()
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError, RuntimeError, json.JSONDecodeError, EOFError, gzip.BadGzipFile) as exc:
+        print(f"COLLECTOR_FAILED: {exc}", file=sys.stderr)
+        sys.exit(1)

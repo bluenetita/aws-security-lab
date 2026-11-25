@@ -1,0 +1,11 @@
+[Unit]
+Description=BlueGuard Zeek Health Check Every 5 Minutes
+
+[Timer]
+OnCalendar=*:2/5
+AccuracySec=30s
+Persistent=false
+Unit=blueguard-zeek-watchdog.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,8 @@
+.gitattributes text eol=lf
+FILE-METADATA.txt text eol=lf
+SENSOR-PROVENANCE.txt text eol=lf
+etc/** text eol=lf
+site/** text eol=lf
+systemd/** text eol=lf
+libexec/** text eol=lf
+sbin/** text eol=lf

@@ -1,0 +1,20 @@
+[Unit]
+Description=BlueGuard ZeekControl Periodic Maintenance
+Documentation=https://docs.zeek.org/
+After=blueguard-zeek.service
+
+[Service]
+Type=oneshot
+
+User=zeek
+Group=zeek
+WorkingDirectory=/var/lib/zeek
+UMask=0027
+
+# Skip maintenance if the main service was intentionally stopped.
+ExecCondition=/usr/bin/systemctl is-active --quiet blueguard-zeek.service
+
+# Maintenance only: process recovery will be handled separately.
+ExecStart=/opt/zeek/bin/zeekctl cron --no-watch
+
+TimeoutStartSec=120

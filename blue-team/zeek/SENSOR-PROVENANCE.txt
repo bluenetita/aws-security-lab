@@ -1,0 +1,32 @@
+=== CAPTURE TIMESTAMP ===
+2026-11-25T15:33:50Z
+
+=== OPERATING SYSTEM ===
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+7.0.0-1017-aws
+x86_64
+
+=== ZEEK VERSION ===
+/opt/zeek/bin/zeek version 9.0.1
+
+=== PYTHON VERSION ===
+Python 3.12.3
+
+=== ZEEK PACKAGES ===
+zeek-9.0	9.0.1-0
+zeek-9.0-btest	9.0.1-0
+zeek-9.0-btest-data	9.0.1-0
+zeek-9.0-client	9.0.1-0
+zeek-9.0-core	9.0.1-0
+zeek-9.0-core-dev	9.0.1-0
+zeek-9.0-spicy-dev	9.0.1-0
+zeek-9.0-zkg	9.0.1-0
+zeekctl-9.0	9.0.1-0
+
+=== SERVICE ACCOUNTS ===
+uid=999(zeek) gid=988(zeek) groups=988(zeek)
+uid=997(blueguard-sender) gid=987(blueguard-sender) groups=987(blueguard-sender),988(zeek)
+
+=== ZEEK FILE CAPABILITIES ===

@@ -1,0 +1,11 @@
+[Unit]
+Description=BlueGuard v0.4.0 Zeek collector schedule (1 minute after each run)
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=1min
+AccuracySec=10s
+Unit=blueguard-zeek-collector.service
+
+[Install]
+WantedBy=timers.target

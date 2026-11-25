@@ -1,0 +1,11 @@
+[Unit]
+Description=BlueGuard Zeek Health Watchdog
+After=blueguard-zeek.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0027
+ExecStart=/usr/local/sbin/blueguard-zeek-watchdog.sh
+TimeoutStartSec=120
