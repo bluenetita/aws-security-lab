@@ -17,3 +17,19 @@
 | Separate CloudWatch collector (planned) | Keep AWS credentials/permissions outside API and preserve on-prem portability | rc5 design only; IAM and data contract still require validation |
 
 All decisions are scoped to the laboratory version; production design requires a separate architecture/security review.
+
+## Proposed product ADRs — not approved
+
+The following are decision records to write and review before the corresponding implementation. They do not supersede the historical laboratory decisions above. Each ADR should record the selected option, alternatives, tradeoffs, security impact, evidence, owner, and reversal path. The maturity gates are in [Product Roadmap](product/PRODUCT_ROADMAP.md).
+
+| ID | Proposed decision | Alternatives and open tradeoff | Needed by |
+| --- | --- | --- | --- |
+| P-01 | Keep FastAPI as a modular monolith with external collectors and independent Zeek/Wazuh engines. | Separate product services or direct vendor polling from FastAPI; weigh operational complexity and credential isolation. | M4 |
+| P-02 | Version imported-alert contracts and keep rc4 synthetic and replayed-fixture provenance distinct. | Extend existing synthetic routes or provide new routes; assess compatibility and risk of misleading data. | M4 |
+| P-03 | Select Wazuh Indexer API for initial alert acquisition, if version/schema/permissions validate; assess Server API separately for agent/manager health. | Other export surfaces; compare stable IDs, pagination, authorization, and operational support. | M4 |
+| P-04 | Define cursor persistence, bounded replay, deduplication, atomic publication, failure state, and retention for the Technical Alpha. | Existing bounded snapshot versus a new store; compare recovery and consistency. | M4 |
+| P-05 | Version source-specific Assurance without changing Quality Gate policy v1 semantics. | Independent source assessments versus combined policy; assess false assurance and migration. | Initial source-state semantics by M4; expanded Assurance design by M7. |
+| P-06 | Define source identity and correlation uncertainty across Zeek and Wazuh. | IP-only, agent ID, and time-window joins; account for NAT, reuse, clock skew, and missing identity. | Source identity by M4; correlation semantics by M6. |
+| P-07 | Define Product MVP authentication, server-side RBAC, audit, customer access, and network controls. | Identity provider and deployment choices; `ClusterIP` alone is not isolation. | Preliminary threat model and access requirements before live M5; customer-facing controls by M8. |
+| P-08 | Select persistent storage and retention/backup/recovery design. | PostgreSQL is a candidate, not an approved dependency; compare operational burden and recovery needs. | Initial retention and recovery requirements before live M5; persistent storage design by M8. |
+| P-09 | Decide licensing, ownership, third-party provenance, attribution, and allowed reference-code reuse. | Independent implementation versus reviewed import; obtain legal/product decision before affected use. | Before reference-code reuse, affected Detection Pack implementation, or third-party deployment/distribution. |

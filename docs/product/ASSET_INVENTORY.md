@@ -1,0 +1,12 @@
+# Product asset map
+
+Status: **planning summary**, 26 November 2026. The supplied *BlueGuard Technical Asset Assessment* is the detailed inventory and evidence reference. This page identifies product disposition without copying its source inventory or reference code. BlueGuard paths are relative to this repository; research paths are relative to the separate `wazuh-zeek-lab` repository.
+
+| Domain | BlueGuard asset and disposition | Separate research reference and disposition | Gate |
+| --- | --- | --- | --- |
+| Monitor | `applications/blueguard-api/app/zeek.py`, `applications/blueguard-api/app/zeek_api.py`, and the Zeek host pipeline: **preserve and adapt** existing bounded connection snapshot. | `lab/blue-team/wazuh/` agent and endpoint examples: **study**, not import by default. | Keep network records and endpoint events in distinct contracts; validate host pipeline and Zeek policies. |
+| Detect | `applications/blueguard-api/app/main.py`, `applications/blueguard-api/app/schemas.py`, and demo fixtures: **preserve synthetic semantics**. `blue-team/zeek/site/blueguard_exfil/`: **review** candidate source. | `lab/blue-team/zeek/site/custom_scripts/data_exfiltration/` and Wazuh rules: **reference** for event mapping and test design. | Resolve native log paths, parent rules, field mapping, rule IDs, version, false positives, and source rights before reuse. |
+| Assurance | Existing telemetry health modules and `telemetry_quality.py`: **reuse** policy v1; propose source-specific versioned extension. | Research evidence and observability notes: **reference** for test cases only. | Never promote historical PASS results to BlueGuard validation; preserve unknown and gap states. |
+| Deployment and response | Private k3s overlay, restricted SSH receiver, and read-only publisher: **lab baseline**. | Full Manager/Proxmox/OVS configuration and RouterOS/agent response actions: **exclude** from initial product scope. | Review portability, permissions, access, retention, and recovery before a customer pilot. |
+
+**Provenance gate:** BlueGuard carries AGPLv3 text; the reference `lab/` tree carries GPLv3 text. File-level authorship, third-party snippets, modified stock components, attribution, and commercial distribution obligations remain unresolved. Similarity or common project context does not establish permission to copy or relicense. No reference source is imported by this documentation milestone.
