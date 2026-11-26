@@ -1,6 +1,6 @@
 # Telemetry Quality Gate — BlueGuard v0.5.0-rc4
 
-**Release checkpoint:** 24 November 2026, main Service validated at 18:40:40 UTC; final post-Canary status at 18:41:45 UTC. This is a deployed laboratory release, not a production-ready security product. The complete rc4 source is not bundled; see [source inventory](source-availability.md).
+**Release checkpoint:** 24 November 2026, main Service validated at 18:40:40 UTC; final post-Canary status at 18:41:45 UTC. This is a historical deployed laboratory release, not a production-ready security product. The rc4 source was subsequently recovered into this repository; that recovery does not independently reproduce the historical deployment. See [source inventory](source-availability.md).
 
 ## Purpose and API contract
 
@@ -23,6 +23,12 @@ Precedence: `critical` > `degraded` > `unknown` > `healthy`.
 - **Healthy:** fresh snapshot, nonempty complete capture evidence with no observed gaps, healthy publisher and recent ingestion.
 
 Capture fidelity is independent of overall quality. The snapshot-wide aggregate does not identify when each gap occurred. Freshness is not a per-gap time window; completeness of `missed_bytes` fields is not completeness of packet capture. The reads of the three components are not a single atomic transaction, and inactivity may cause stale event/batch states even if the host is functioning.
+
+The separately recovered Zeek Data Exfiltration policy now has local offline
+regression coverage, including adaptive profile expiration. It does not
+change this application's rc4 Quality Gate policy or establish complete
+capture, live detection efficacy, or Wazuh alert ingestion. See
+[verification](verification.md).
 
 Reason codes in the deployed policy: `snapshot_stale`, `snapshot_unavailable`, `snapshot_gaps_observed`, `capture_evidence_unavailable`, `publisher_stale`, `publisher_unavailable`, `ingestion_stale`, `ingestion_unavailable`.
 

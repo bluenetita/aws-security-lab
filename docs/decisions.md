@@ -20,8 +20,8 @@ All decisions are scoped to the laboratory version; production design requires a
 
 ## M3.3 collector checkpoint continuity decision
 
-**Status:** approved for local source versioning after scoped independent
-review; not deployed. This laboratory decision does not approve any proposed
+**Status:** committed at `906a865` after scoped independent review; no new
+deployment verified. This laboratory decision does not approve any proposed
 product ADR below.
 
 The active-file checkpoint keeps its top-level state version and adds a
@@ -46,6 +46,32 @@ Rollback to the older collector would ignore continuity metadata and restore
 the silent-skip risk. An operator must review the checkpoint and arrange a
 safe active-file replay/reset and receiver capacity before any rollback;
 neither state editing nor live rollback was performed during M3.3.
+
+## M3.4 adaptive profile lifecycle decision
+
+**Status:** approved local policy correction and scoped source review;
+uncommitted at this documentation update. This laboratory decision does not
+approve any proposed product ADR below.
+
+BG-BUG-003 showed that saturated Adaptive host and destination profile tables
+could keep new identities at `capacity_exceeded` after long inactivity. The
+policy now records the last real active-window callback for each existing
+profile and expires host and destination entries independently when completed
+window network time reaches a configurable inactivity interval (60 minutes by
+default). The tick barrier runs after real callbacks and before delayed
+baseline confirmation. Pending samples are discarded with structured audit;
+the separate expiration record reports retired confirmed history. Source-wide
+learning holds remain independent. Invalid nonpositive intervals warn and
+disable expiry while preserving capacity limits.
+
+Admission-time eviction was rejected because an existing identity might still
+receive a callback later in that tick. LRU eviction could discard active
+baselines, and persistent storage or a separate activity table would add
+complexity and resource bounds to review. The barrier approach can leave a new
+identity blocked until a later callback. The default TTL is not production
+calibrated; shorter retention resets useful learning, while longer retention
+prolongs saturation. Synthetic tests do not prove capture completeness or
+real-world detection efficacy. See [verification](verification.md).
 
 ## Proposed product ADRs — not approved
 

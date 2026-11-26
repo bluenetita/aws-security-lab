@@ -20,6 +20,8 @@ export {
     const p90_multiplier: count = 2 &redef;
     const max_host_profiles: count = 512 &redef;
     const max_destination_profiles: count = 4096 &redef;
+    # Laboratory lifecycle bound, measured in completed-window network time.
+    const profile_idle_expiry: interval = 60mins &redef;
     # 15-minute lookahead safely covers a 10-window slow sequence with up to
     # 90 seconds between accepted windows (9 * 90 seconds = 13.5 minutes).
     const delayed_learning_enabled: bool = T &redef;
@@ -68,7 +70,11 @@ export {
         scope: string &log;
         src_ip: addr &log;
         dest_ip: addr &log;
+        # Commit: original sample time. Aggregate discard: discard time.
+        # Profile expiration: last observed active-window time.
         original_sample_ts: time &log;
+        # Commit/discard: confirmed or pending samples. Profile expiration:
+        # retained confirmed history entries removed with the profile.
         sample_bytes: count &log;
         sample_count: count &log;
         reason: string &log;
@@ -90,6 +96,7 @@ type Profile: record {
     values: CountHistory;
     next_slot: count;
     pending: BufferedHistory;
+    last_observed_active: time;
 };
 
 global profiles_host: table[addr] of Profile;
@@ -97,10 +104,12 @@ global profiles_dest: table[addr, addr] of Profile;
 # One conservatively shared hold per protected source. These values are
 # network-time timestamps, not wall-clock deadlines.
 global learning_suspended_until: table[addr] of time;
+global profile_expiry_valid: bool = T;
 
-function fresh_profile(): Profile
+function fresh_profile(stamp: time): Profile
     {
-    return [$values=CountHistory(), $next_slot=0, $pending=BufferedHistory()];
+    return [$values=CountHistory(), $next_slot=0, $pending=BufferedHistory(),
+            $last_observed_active=stamp];
     }
 
 function add_sample(p: Profile, sample: count): Profile
@@ -241,6 +250,63 @@ function confirm_pending(p: Profile, stamp: time, source: addr,
     return p;
     }
 
+# Pending samples are discarded before their profile is removed. This audit
+# describes the confirmed history retired with the profile; the separate
+# discard record describes provisional samples. Neither record confirms data.
+function audit_profile_expiration(p: Profile, stamp: time, source: addr,
+                                  destination: addr, scope_name: string)
+    {
+    p = discard_pending(p, stamp, source, destination, scope_name,
+                        "profile_idle_expired");
+    local retained_bytes: count = 0;
+    for ( i in p$values )
+        retained_bytes += p$values[i];
+    local audit: DataExfilAdaptive::BaselineAudit = [
+        $ts=stamp, $event_type="exfil_baseline_profile_expired",
+        $scope=scope_name, $src_ip=source, $dest_ip=destination,
+        $original_sample_ts=p$last_observed_active,
+        $sample_bytes=retained_bytes, $sample_count=|p$values|,
+        $reason="profile_idle_expired"
+    ];
+    write_baseline_audit(audit);
+    }
+
+# Called only at the completed-window barrier. A new identity may be blocked
+# in this tick and admitted at its next callback. Never evict on admission:
+# another real callback for an existing profile may still be queued.
+function expire_inactive_profiles(stamp: time)
+    {
+    if ( ! profile_expiry_valid )
+        return;
+
+    local expired_hosts: set[addr] = set();
+    local expired_destinations: set[addr, addr] = set();
+    for ( s in profiles_host )
+        {
+        if ( stamp >= profiles_host[s]$last_observed_active &&
+             stamp - profiles_host[s]$last_observed_active >= profile_idle_expiry )
+            add expired_hosts[s];
+        }
+    for ( [s, d] in profiles_dest )
+        {
+        if ( stamp >= profiles_dest[s, d]$last_observed_active &&
+             stamp - profiles_dest[s, d]$last_observed_active >= profile_idle_expiry )
+            add expired_destinations[s, d];
+        }
+
+    for ( s in expired_hosts )
+        {
+        audit_profile_expiration(profiles_host[s], stamp, s, 0.0.0.0, "host");
+        delete profiles_host[s];
+        }
+    for ( [s, d] in expired_destinations )
+        {
+        audit_profile_expiration(profiles_dest[s, d], stamp, s, d,
+                                 "destination");
+        delete profiles_dest[s, d];
+        }
+    }
+
 # Exactly one call per completed window record. Nothing is automatically
 # whitelisted: administrative networks get a classification label ONLY.
 function evaluate_window(
@@ -263,15 +329,19 @@ function evaluate_window(
     if ( ! enabled )
         return;
 
-    local p: Profile = fresh_profile();
+    local p: Profile = fresh_profile(snapshot_ts);
     local capacity_ok = T;
+    local existing = F;
     local destination_class = "external_to_protected_scope";
 
     if ( scope_name == "host" )
         {
         destination_class = "all_destinations";
         if ( source in profiles_host )
+            {
             p = profiles_host[source];
+            existing = T;
+            }
         else if ( |profiles_host| >= max_host_profiles )
             capacity_ok = F;
         }
@@ -280,7 +350,10 @@ function evaluate_window(
         if ( destination in administrative_networks )
             destination_class = "administrative_ssh_vpn_network";
         if ( [source, destination] in profiles_dest )
+            {
             p = profiles_dest[source, destination];
+            existing = T;
+            }
         else if ( |profiles_dest| >= max_destination_profiles )
             capacity_ok = F;
         }
@@ -397,6 +470,16 @@ function evaluate_window(
             p = profiles_dest[source, destination];
         }
 
+    # Apply activity AFTER the candidate branch reloads any stored profile
+    # changed by suspend_learning(). Idle callbacks never refresh this clock.
+    # An untracked profile is still allocated only for actual baseline data.
+    if ( capacity_ok && flows > 0 && (existing || changed) )
+        {
+        if ( snapshot_ts > p$last_observed_active )
+            p$last_observed_active = snapshot_ts;
+        changed = T;
+        }
+
     if ( changed && capacity_ok )
         {
         if ( scope_name == "host" )
@@ -472,7 +555,13 @@ event DataExfilWindow::destination_window_ready(summary: DataExfilWindow::Destin
 # No new sample is committed while a source is quarantined after a candidate.
 event DataExfilWindow::window_tick_complete(stamp: time, span: interval) &priority=-10
     {
-    if ( ! enabled || ! delayed_learning_enabled )
+    if ( ! enabled )
+        return;
+
+    # Expire before delayed confirmation: an expiration tick may not promote
+    # pending samples solely because their confirmation delay also elapsed.
+    expire_inactive_profiles(stamp);
+    if ( ! delayed_learning_enabled )
         return;
 
     local source_keys: set[addr] = set();
@@ -523,6 +612,11 @@ event DataExfilWindow::window_tick_complete(stamp: time, span: interval) &priori
 # Separate native streams preserve per-record JSON keys without union columns.
 event zeek_init() &priority=5
     {
+    if ( profile_idle_expiry <= 0secs )
+        {
+        profile_expiry_valid = F;
+        Reporter::warning("DataExfilAdaptive: profile_idle_expiry must be positive; expiration disabled");
+        }
     Log::create_stream(DataExfilAdaptive::DECISION_LOG, [$columns=DecisionInfo, $path="data_exfil_adaptive"]);
     Log::create_stream(DataExfilAdaptive::BASELINE_LOG, [$columns=BaselineAudit, $path="data_exfil_baseline"]);
     }

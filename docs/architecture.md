@@ -51,9 +51,9 @@ Worker (source ENI) ---------------- TCP/18080 ----------------> Control Plane
 
 The traffic-mirror session must exist for the Zeek instance to observe the selected Worker ENI traffic. The original network connection is not routed through Zeek.
 
-## Collector continuity (M3.3 local source)
+## Collector continuity (M3.3 committed source)
 
-The pending M3.3 collector source extends the version-1 active checkpoint with
+The M3.3 collector source at `906a865` extends the version-1 active checkpoint with
 `continuity: {offset, window_bytes, sha256}`. The digest covers up to 4096
 bytes immediately before the committed offset; device and inode checks and
 archive line checkpoints remain. On an existing nonzero active checkpoint
@@ -73,6 +73,30 @@ deduplication authority. Normal file append does not invalidate the already
 read prefix. This is a locally tested source change, not evidence of a new
 deployment or guaranteed delivery. See [decision record](decisions.md) and
 [verification](verification.md).
+
+## Zeek Data Exfiltration policy (M3.4 local source)
+
+The recovered `blue-team/zeek/site/blueguard_exfil/` scripts consume completed
+Zeek connection records through window aggregation, then emit native flow,
+quality, Slow and Adaptive JSON streams. These policy logs are not the rc4
+application's synthetic dashboard alerts or an implemented Wazuh ingestion
+path. Detector conclusions depend on capture quality and completed connection
+records; offline synthetic validation does not establish live effectiveness.
+
+Adaptive host and destination baseline profiles have separate capacity limits
+and independent last-observed-active timestamps. An existing profile's
+activity clock advances on a real completed-window callback with `flows > 0`,
+including degraded or zero-payload observations; idle maintenance does not
+renew it. The configurable `profile_idle_expiry` defaults to 60 minutes for
+the laboratory. At the completed-window tick barrier (Adaptive priority -10),
+network-time inactivity at or beyond the interval expires a profile before
+pending-sample confirmation. Pending samples are discarded and audited; a
+separate expiration record accounts for retired confirmed history. Source-wide
+learning holds survive profile deletion. New identities blocked during an
+expiry tick can be admitted on a later callback with fresh history. A
+nonpositive interval warns and disables expiration. Profile limits remain
+bounded, but default-limit memory and performance have not been measured.
+See [verification](verification.md) and [limitations](limitations.md).
 
 ## Kubernetes resources
 

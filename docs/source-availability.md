@@ -49,6 +49,14 @@ The remaining `StarletteDeprecationWarning` concerning `httpx` and `TestClient`
 is technical debt. These CI results apply to `caa8ce1`, not to later
 documentation changes.
 
+The later M3.3 commit `906a865` includes the recovered host pipeline fixes and
+host regression suite. The project owner reports GitHub Actions run
+`45812342775` succeeded in 30 seconds on that commit; detailed CI test counts
+remain unverified. On 26 November 2026, the recovered Zeek policy also passed
+59 local offline tests on Zeek 9.0.1 after the BG-BUG-003 adaptive lifecycle
+correction. These policy changes and tests remain uncommitted at this record;
+they are not covered by that CI run. See [verification](verification.md).
+
 Kustomize rendering also succeeded locally during consolidation. No deployment
 was performed during the consolidation or by the CI workflow.
 
@@ -78,7 +86,8 @@ the application.
 
 1. Review source and evidence for confidential information before publication.
 2. Pin the base image digest and transitive dependencies; establish bit-for-bit image reproducibility.
-3. Validate the recovered host pipeline and Zeek policies.
+3. Complete review and versioning of the locally validated Zeek policy change;
+   validate host and policy behavior in separately authorized live settings.
 4. Implement reproducible provisioning and deployment procedures.
 5. Perform controlled, fresh end-to-end AWS validation.
 6. Resolve the `httpx`/`TestClient` deprecation and assess image scanning and provenance.

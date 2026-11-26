@@ -13,12 +13,13 @@ The project owner reports management approval to proceed with product developmen
 | Item | Recorded state | Provenance |
 | --- | --- | --- |
 | Source version | `v0.5.0-rc4` | Repository documentation and project-owner confirmation. |
-| Current local HEAD | `74d716b4d714abb3ff2839c5e4680f01f685f0ac` | Local Git inspection on 26 November 2026; M3.3 changes are staged for review, not committed. |
+| Current local HEAD | `906a8653b4bf6a03cf13660517c8e915f2b1b467` | Local Git inspection on 26 November 2026; M3.3 is committed and the M3.4 policy/test work remains uncommitted. |
 | Branch | `chore/consolidate-blueguard-rc4` | Local Git inspection on 26 November 2026. |
+| M3.3 remote HEAD | `906a8653b4bf6a03cf13660517c8e915f2b1b467` | Project-owner report; no remote check was performed during this offline documentation task. |
 | Earlier CI-reported commit | `caa8ce1` | Project-owner report of run #3; not the current local HEAD. |
 | Integration status | No merge into `main` had been reported. | Project-owner report recorded 25 November 2026; not independently rechecked here. |
 
-The run #3 result applies to its reported source revision only. Separate owner reports describe later CI runs #4 and #5 and earlier local checks; their logs were not independently inspected here. M2 product definition was completed and published, according to the project owner. None of those reports validates the pending M3.3 changes or establishes bit-for-bit image reproducibility, reproducible infrastructure provisioning, or a fresh end-to-end AWS deployment.
+The run #3 result applies to its reported source revision only. Separate owner reports describe later CI runs #4 and #5 and earlier local checks; their logs were not independently inspected here. M2 product definition was completed and published, according to the project owner. The reported M3.3 CI success applies to `906a865`, not to the uncommitted M3.4 policy changes, and does not establish bit-for-bit image reproducibility, reproducible infrastructure provisioning, or a fresh end-to-end AWS deployment.
 
 ## 3. Implemented architecture and capabilities
 
@@ -26,7 +27,9 @@ The documented rc4 architecture has one FastAPI and static-UI container in a sin
 
 The rc4 application includes connection, publisher, ingestion, and Telemetry Quality Gate assessments. Historical release evidence records the Quality Gate as deployed, while the repository CI result establishes source-level checks only. Wazuh integration and automated CloudWatch collection are not implemented. The application does not directly query AWS.
 
-The M3.3 collector change is local source pending a commit and remote CI. It fixes silent skips after active-log truncation/refill (BG-BUG-001), masked transport or checkpoint `FileNotFoundError` failures (BG-BUG-002), stale buffered continuity reads (BG-BUG-001a), and loss of prior continuity evidence across batches (BG-BUG-001b). Its active checkpoint retains a SHA-256 digest of up to 4096 bytes before the committed offset. It uses descriptor-based `os.pread`, checks the last persisted anchor and the full pending-batch digest before delivery and after ACK, then persists the checkpoint. See [architecture](architecture.md) and [decision record](decisions.md). This local change has not been deployed.
+The committed M3.3 collector change fixes silent skips after active-log truncation/refill (BG-BUG-001), masked transport or checkpoint `FileNotFoundError` failures (BG-BUG-002), stale buffered continuity reads (BG-BUG-001a), and loss of prior continuity evidence across batches (BG-BUG-001b). Its active checkpoint retains a SHA-256 digest of up to 4096 bytes before the committed offset. It uses descriptor-based `os.pread`, checks the last persisted anchor and the full pending-batch digest before delivery and after ACK, then persists the checkpoint. See [architecture](architecture.md) and [decision record](decisions.md). No new deployment has been verified.
+
+The recovered Zeek Data Exfiltration policy is now locally testable with Zeek 9.0.1. Uncommitted M3.4 source bounds adaptive host and destination profiles by a configurable 60-minute laboratory inactivity interval. Existing profiles renew activity only on a real completed-window callback with `flows > 0`. At `window_tick_complete` priority -10, network-time expiration runs after callbacks and before delayed confirmation. It discards pending samples, emits a structured expiration audit, preserves source-wide learning holds, and allows readmission with fresh history on a later callback. A nonpositive interval warns and disables expiration. These source and synthetic-test results do not establish live detection efficacy or deployment. See [architecture](architecture.md) and [verification](verification.md).
 
 ## 4. Validation status and evidence
 
@@ -39,7 +42,7 @@ The M3.3 collector change is local source pending a commit and remote CI. It fix
 | Application container build | Successful. | Project-owner report of CI run #3; the image was not published by that workflow. |
 | Kustomize | Rendering and configured baseline checks successful. | Project-owner report of CI run #3 for the control-plane lab overlay; no apply or deployment is implied. |
 
-CI run #2 failed because tests were excluded from the Docker build context. The issue was resolved by creating `applications/blueguard-api/Dockerfile.test.dockerignore`, according to the project owner. The pending M3.3 workflow verifies the source manifest, runs the standard-library host suite on the Linux runner, runs the QA image in an isolated container, builds the application image, and checks the rendered Kustomize baseline. No remote run of that workflow revision has been reported.
+CI run #2 failed because tests were excluded from the Docker build context. The issue was resolved by creating `applications/blueguard-api/Dockerfile.test.dockerignore`, according to the project owner. The M3.3 workflow verifies the source manifest, runs the standard-library host suite on the Linux runner, runs the QA image in an isolated container, builds the application image, and checks the rendered Kustomize baseline. The project owner reports CI run `45812342775` succeeded on `906a865` in 30 seconds; detailed per-step test counts remain unverified. Zeek policy tests are local and are not integrated into CI.
 
 Historical AWS release evidence is recorded in `README.md`, `docs/telemetry-quality.md`, `docs/verification.md`, and `evidence/2026-11-24/result.json`. The original rc4 container image and recovery archives are preserved outside Git, according to the recovery record and project-owner report; they are not reproducibility evidence for this checkout. All four AWS laboratory instances were confirmed stopped on **25 November 2026**, with no Traffic Mirroring sessions remaining at the time of inspection. This is historical evidence, not a current live-state assertion.
 
@@ -56,11 +59,19 @@ The research repository was locally observed clean at `eb6d762c401fe26c7dd051a7f
 
 | M3.3 record | Result | Provenance and limit |
 | --- | --- | --- |
-| Previous CI run #5 | Successful; workflow 36 seconds, job 32 seconds. | Project-owner report for the previously published baseline; logs and exact test output were not independently inspected. It predates the pending host-suite workflow change. |
+| Previous CI run #5 | Successful; workflow 36 seconds, job 32 seconds. | Project-owner report for the earlier published baseline; logs and exact test output were not independently inspected. It predates the host-suite workflow change. |
 | Existing indexed manifest | **150 canonical Git checksums verified**. | Fresh local `python3 scripts/source_manifest.py --check` in WSL on 26 November 2026, before M3.3 staging. |
 | Host pipeline regression suite | **41/41 passed**, zero expected failures, in **0.405 seconds**. | Fresh local WSL Python 3.12.3 run from the repository root during M3.3f; synthetic fixtures, temporary files, mocked transport. An earlier M3.3e run passed in 0.383 seconds. |
 | Independent collector review | **21/21 passed** on Linux Python 3.13.5; five additional boundary experiments passed. | Project-owner report of independent review; overlapping checks are not added to the 41-test count. |
-| Workflow syntax | YAML parsing and Bash syntax passed locally; the new step passed independent synthetic success/failure/zero-test checks. | Local M3.3e inspection and project-owner report for the independent step checks; no remote CI run of the edited workflow. |
+| Workflow syntax | YAML parsing and Bash syntax passed locally; the new step passed independent synthetic success/failure/zero-test checks. | Local M3.3e inspection and project-owner report for the independent step checks; this was before the later CI run recorded below. |
+
+| Later M3 record | Result | Provenance and limit |
+| --- | --- | --- |
+| M3.3 CI run `45812342775` | **Success**, 30-second workflow, on `906a865`. | Project-owner report; detailed CI host/application counts and step logs were not independently inspected during this offline task. It does not validate M3.4. |
+| Committed manifest before M3.4 staging | **155/155 canonical Git checksums verified**. | Fresh local WSL `scripts/source_manifest.py --check` on 26 November 2026 at HEAD `906a865`; untracked tests and policy edits are outside that indexed baseline. |
+| M3.4 staged manifest | **161/161 canonical Git checksums verified**. | Local WSL `scripts/source_manifest.py --write` and `--check` on 26 November 2026 after staging the approved policy, tests and documentation; the index is not a commit or CI result. |
+| M3.4 Zeek policy suite | **59/59 passed** on Zeek 9.0.1, Ubuntu 24.04.1 WSL2, Python 3.12.3, non-root. | Fresh local synthetic event and offline PCAP regression run on 26 November 2026; not a CI or live-sensor result. Both original BG-BUG-003 acceptance cases pass. |
+| M3.4f host suite | **41/41 passed** on WSL Python 3.12.3. | Fresh local synthetic host-pipeline regression run on 26 November 2026; no live service validation. |
 
 ## 5. Security posture
 
@@ -71,7 +82,8 @@ The API has no end-user authentication or authorization and must remain private.
 ## 6. Known limitations and technical debt
 
 - The `StarletteDeprecationWarning` concerning `httpx` and `TestClient` remains open technical debt; it did not fail the reported 54-test run.
-- The recovered host pipeline has 41 local synthetic regression tests, but live service and full-path validation remain pending. Zeek policy validation remains pending.
+- The recovered host pipeline has 41 local synthetic regression tests. The Zeek policy has 59 local offline tests; they are not in CI and do not establish live detection efficacy. Live service and full-path validation remain pending.
+- Adaptive profile performance and memory use at the default host/destination capacity limits are unmeasured. The 60-minute inactivity interval is a laboratory setting; incomplete capture or missing finalized connections can make observed activity differ from actual traffic.
 - Collector continuity evidence is bounded to 4096 bytes before the last persisted offset; concurrent rewrites outside the checked ranges or between checks can escape detection. Replay can produce duplicates and encounter the receiver's 10 MiB/10,000-record capacity ceiling. Rollback to the older collector requires operator-reviewed checkpoint handling.
 - Reproducible provisioning, bit-for-bit image reproducibility, and fresh end-to-end AWS validation remain pending.
 - The image base digest and transitive dependencies are not yet pinned for reproducible builds, according to `docs/source-availability.md` and `docs/limitations.md`.
@@ -80,11 +92,11 @@ The API has no end-user authentication or authorization and must remain private.
 
 ## 7. Current development phase
 
-The existing rc4 implementation remains a **Laboratory Baseline**. M2 product definition is completed and published per the project owner; its proposed product ADRs remain unapproved. M3.3 local implementation and independent review are complete, and its source, tests, workflow, and documentation are being staged for a later authorized commit. Remote CI validation of that revision remains pending. The next maturity levels are **Technical Alpha**, **Product MVP**, and **Commercial Release**; none is implemented or approved for release. Zeek policy, reproducibility, and fresh end-to-end validation remain open.
+The existing rc4 implementation remains a **Laboratory Baseline**, version `v0.5.0-rc4`. M2 product definition is completed and published per the project owner; its proposed product ADRs remain unapproved. M3.3 is committed and its CI run is reported successful. M3.4 policy and regression changes have passed local validation and scoped independent source review, but are uncommitted; Zeek tests are not in CI. The **M3 final readiness review remains pending**. The next maturity levels are **Technical Alpha**, **Product MVP**, and **Commercial Release**; none is implemented or approved for release. Reproducibility and fresh end-to-end validation remain open.
 
 ## 8. Next proposed milestones
 
-The proposed, consistently numbered product roadmap is in `docs/product/PRODUCT_ROADMAP.md`: M0 Consolidated Baseline, M1 Technical Asset Assessment, M2 Product Definition, M3 Baseline Verification, M4 Wazuh Alert Contract, M5 Wazuh Integration, M6 First Detection Pack, M7 Assurance Evolution, M8 Secure Product MVP, and M9 Private Beta. After the M3.3 local host-pipeline work, the next M3 checks are a remote CI run on the eventual commit, M3.4 Zeek policy validation, and separately authorized live end-to-end verification. Reproducible provisioning, dependency pinning, a controlled fresh AWS trace, and the `httpx`/`TestClient` warning remain open work; no live operation is authorized by this plan. This task authorizes controlled staging and manifest regeneration, not a commit or deployment.
+The proposed, consistently numbered product roadmap is in `docs/product/PRODUCT_ROADMAP.md`: M0 Consolidated Baseline, M1 Technical Asset Assessment, M2 Product Definition, M3 Baseline Verification, M4 Wazuh Alert Contract, M5 Wazuh Integration, M6 First Detection Pack, M7 Assurance Evolution, M8 Secure Product MVP, and M9 Private Beta. The next M3 step is a final readiness review after versioning and CI validation of M3.4, with separately authorized live end-to-end verification still open. Reproducible provisioning, dependency pinning, a controlled fresh AWS trace, and the `httpx`/`TestClient` warning remain open work; no live operation is authorized by this plan. This task authorizes controlled staging and manifest regeneration, not a commit or deployment.
 
 ## 9. Open architectural and product decisions
 

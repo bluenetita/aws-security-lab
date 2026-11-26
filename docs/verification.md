@@ -47,14 +47,23 @@ validate later documentation changes, the recovered host pipeline or Zeek
 policies, reproducible provisioning, bit-for-bit image reproducibility, or a
 fresh end-to-end AWS trace.
 
+The project owner subsequently reports GitHub Actions run `45812342775`
+completed successfully in **30 seconds** on commit
+`906a8653b4bf6a03cf13660517c8e915f2b1b467`, the committed M3.3 host
+pipeline and CI revision. Detailed per-step host/application test counts and
+logs remain unverified in this offline documentation task. The run does not
+cover the uncommitted M3.4 Zeek policy changes; the Zeek regression suite is
+not yet integrated into CI.
+
 ## M3.3 host pipeline source verification (26 November 2026)
 
 The project owner reports that prior BlueGuard CI run #5 succeeded (36-second
 workflow, 32-second job) on the previously published baseline. Its logs were
 not independently inspected here, and it did not run the new host suite.
-The edited workflow adds that suite on `ubuntu-24.04` after the manifest check,
-with path filters for host sources and tests. Remote CI validation of this
-revision remains pending.
+The committed workflow adds that suite on `ubuntu-24.04` after the manifest
+check, with path filters for host sources and tests. Run `45812342775` is
+reported successful on this revision; its detailed test output was not
+independently inspected here.
 
 From the repository root, the local standard-library suite ran with:
 
@@ -83,6 +92,54 @@ check leaves the last persisted checkpoint in place; the receiver may have
 accepted the batch, so recovery replays it and depends on deduplication.
 These source-level checks do not establish exactly-once delivery or complete
 capture. See [architecture](architecture.md) and [limitations](limitations.md).
+
+## M3.4 offline Zeek policy verification (26 November 2026)
+
+The local runtime is `/opt/zeek/bin/zeek` **9.0.1** in Ubuntu 24.04.1 WSL2
+(amd64), with Python 3.12.3 as a non-root user. The persistent suite is under
+`tests/zeek_policy/`; it uses isolated temporary directories, controlled
+synthetic timestamps, direct event injection and generated offline PCAPs. It
+does not capture live traffic, contact a sensor or use operational logs.
+
+Before the BG-BUG-003 correction, the normal suite passed **39/39** tests, but
+two separate host/destination acceptance tests failed: after 80 synthetic
+minutes, a new identity still received `capacity_exceeded`. The corrected
+policy and suite now include those cases in normal discovery. The M3.4f local
+run executed:
+
+```bash
+python3 -B -m unittest discover -s tests/zeek_policy -p 'test_*.py' -v
+python3 -B -m unittest discover -s tests/host_pipeline -p 'test_*.py' -v
+```
+
+The Zeek suite passed **59/59** and host suite **41/41**, each with zero
+failures, skips and expected failures. The added regression confirms that an
+identity with one confirmed sample expires with an audit reporting that
+history, then returns with zero prior samples and learns again on its next
+callback. That focused fixture uses a **120-second TTL** and immediate
+learning only to expose the history transition; the policy default remains
+60 minutes with delayed learning enabled. The suite also covers eligibility,
+thresholds, callback ordering, pending discard, independent scopes, capacity
+recovery, source-wide holds, invalid TTL, six representative native JSON log
+schemas and the synthetic packet-to-policy path. See the
+[test README](../tests/zeek_policy/README.md) for fixture provenance and exact
+scope.
+
+The `data_exfil_baseline` native JSON key set is unchanged. For a commit,
+`ts` is the confirmation tick, `original_sample_ts` is its sample-window
+time, and count/bytes describe that sample. For the existing aggregate
+discard event, `ts` and `original_sample_ts` are both discard time; count and
+bytes describe pending samples discarded. For
+`exfil_baseline_profile_expired`, `ts` is the expiration tick,
+`original_sample_ts` is the last observed active-window time, and count/bytes
+describe confirmed history retired. Pending samples produce a separate
+discard record before the expiration record and are never confirmed by
+expiration.
+
+These are local synthetic and offline packet tests, not CI results or proof of
+real-world detection efficacy. Capture completeness, default-limit memory and
+performance, live service behavior and a timed end-to-end AWS trace remain
+unverified. M3 final readiness review remains pending.
 
 ## Kubernetes checks (Control Plane)
 
@@ -139,4 +196,4 @@ sudo -n k3s kubectl -n blueguard get pods -o wide
 sudo -n k3s crictl images | grep -E 'blueguard-api.*0\.5\.0-rc[34]'
 ```
 
-A non-healthy quality state is not automatically a failed deployment. Verify that reasons and component values match the policy, and keep unknown connectivity distinct from health/readiness. The commands above are read-only. The earlier rc4 application QA row refers to the EC2 development tree; the separate consolidated repository CI result above refers to `caa8ce1`. This documentation update did not run the suite again.
+A non-healthy quality state is not automatically a failed deployment. Verify that reasons and component values match the policy, and keep unknown connectivity distinct from health/readiness. The commands above are read-only. The earlier rc4 application QA row refers to the EC2 development tree; the separate consolidated repository CI result above refers to `caa8ce1`. This M3.4 documentation update ran the Zeek and host suites, not the application QA suite.
