@@ -52,7 +52,7 @@ completed successfully in **30 seconds** on commit
 `906a8653b4bf6a03cf13660517c8e915f2b1b467`, the committed M3.3 host
 pipeline and CI revision. Detailed per-step host/application test counts and
 logs remain unverified in this offline documentation task. The run does not
-cover the uncommitted M3.4 Zeek policy changes; the Zeek regression suite is
+cover the later M3.4 Zeek policy changes; the Zeek regression suite is
 not yet integrated into CI.
 
 ## M3.3 host pipeline source verification (26 November 2026)
@@ -139,7 +139,32 @@ expiration.
 These are local synthetic and offline packet tests, not CI results or proof of
 real-world detection efficacy. Capture completeness, default-limit memory and
 performance, live service behavior and a timed end-to-end AWS trace remain
-unverified. M3 final readiness review remains pending.
+unverified.
+
+## M3 final evidence and offline M4 disposition (26 November 2026)
+
+The **last verified implementation baseline** is
+`a2fee23329776d735060473d59d681ef2de07ea5` on
+`chore/consolidate-blueguard-rc4`. Local Git and the previous M3.4h read-only
+remote check agreed on that SHA; the tree and index were clean. The committed
+manifest and the index at this review passed **161/161** canonical checksums.
+
+| M3 area | Attributable result | Boundary |
+| --- | --- | --- |
+| M3.1 source integrity and CI | 161/161 local manifest; GitHub Actions [run #7](https://github.com/bluenetita/aws-security-lab/actions/runs/45845763503) completed successfully in 27 seconds on `a2fee23`. | Prior M3.4h public API inspection verified push event, SHA and successful manifest, host, application, QA build, image build and Kustomize steps. Job logs returned HTTP 403, so actual CI test counts and skip/failure details remain unverified. |
+| M3.2 local validation environment | Ubuntu 24.04.1 WSL2, Python 3.12.3 and Zeek 9.0.1, non-root. | Local offline environment, not the deployed sensor. |
+| M3.3 host pipeline | 41/41 local tests passed; BG-BUG-001, BG-BUG-001a, BG-BUG-001b and BG-BUG-002 are covered within synthetic regression scope. | The CI host step succeeded, but its actual test count is unavailable; live service and exactly-once behavior remain unverified. |
+| M3.4 Zeek policy | 59/59 local offline tests passed; BG-BUG-003 host/destination capacity recovery and baseline lifecycle are covered. | The Zeek suite is versioned but absent from CI; synthetic results do not establish live detection efficacy. |
+
+The historical rc4 application count of 54, the 41 host tests and the 59
+Zeek tests are separate evidence sets, not one verified 154-test execution.
+No corrected collector or Adaptive policy deployment to AWS has been verified.
+The M3 readiness decision is **CONDITIONAL GO for offline M4 contract and
+fixture development**. There is no live dependency for that design work;
+live integration and production release have separate gates in
+[limitations](limitations.md) and the [product roadmap](product/PRODUCT_ROADMAP.md).
+The documentation closeout still requires an authorized commit and
+publication. No M4 implementation has started.
 
 ## Kubernetes checks (Control Plane)
 

@@ -49,9 +49,9 @@ neither state editing nor live rollback was performed during M3.3.
 
 ## M3.4 adaptive profile lifecycle decision
 
-**Status:** approved local policy correction and scoped source review;
-uncommitted at this documentation update. This laboratory decision does not
-approve any proposed product ADR below.
+**Status:** reviewed, committed and published in the last verified
+implementation baseline `a2fee23`; not deployed. This laboratory decision
+does not approve any proposed product ADR below.
 
 BG-BUG-003 showed that saturated Adaptive host and destination profile tables
 could keep new identities at `capacity_exceeded` after long inactivity. The
@@ -72,6 +72,32 @@ identity blocked until a later callback. The default TTL is not production
 calibrated; shorter retention resets useful learning, while longer retention
 prolongs saturation. Synthetic tests do not prove capture completeness or
 real-world detection efficacy. See [verification](verification.md).
+
+## M3 final development-readiness disposition
+
+**Decision (26 November 2026): CONDITIONAL GO for offline M4 Wazuh Alert
+Contract development only.** M3.1 source integrity/CI, M3.2 local validation
+environment, M3.3 host pipeline regression and M3.4 Zeek policy regression
+have attributable results at the last verified implementation baseline
+`a2fee23`. The 161-entry manifest verifies locally; CI run #7 succeeded with
+verified step conclusions, while job logs and actual CI test counts were
+inaccessible. Local host and Zeek suites passed 41/41 and 59/59 separately.
+BG-BUG-001, BG-BUG-001a, BG-BUG-001b, BG-BUG-002 and BG-BUG-003 are addressed
+within their tested synthetic scopes. Zeek tests are not in CI.
+
+Offline M4 can define versioned contracts, source identity, API selection,
+cursor/replay, bounds, publication, error and provenance semantics using
+synthetic fixtures without a live sensor or Wazuh connection. Blocking that
+design work on a fresh AWS trace would not improve the validity of the offline
+contract decision. The alternative of treating M3 CI success as live
+integration proof is rejected because neither Zeek policy tests nor a fresh
+end-to-end trace ran there. No live integration, deployment, production or
+customer-access approval follows from this decision. Zeek CI and default-limit
+measurements are due no later than M6 Detection Pack acceptance; M5 and M8
+retain their separate live and security gates. See [limitations](limitations.md)
+and [product roadmap](product/PRODUCT_ROADMAP.md). This disposition does not
+approve proposed product ADRs P-01 through P-09. Its documentation closeout
+remains pending a separately authorized commit and publication.
 
 ## Proposed product ADRs — not approved
 
