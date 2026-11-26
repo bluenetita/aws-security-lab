@@ -18,6 +18,35 @@
 
 All decisions are scoped to the laboratory version; production design requires a separate architecture/security review.
 
+## M3.3 collector checkpoint continuity decision
+
+**Status:** approved for local source versioning after scoped independent
+review; not deployed. This laboratory decision does not approve any proposed
+product ADR below.
+
+The active-file checkpoint keeps its top-level state version and adds a
+SHA-256 anchor for up to 4096 bytes before the exact byte offset. The
+collector uses descriptor-based positional reads to bypass Python buffering,
+checks the last persisted anchor and a full digest of each pending batch
+before delivery and after ACK, and advances state only after successful
+validation and atomic persistence. The restricted SSH path and archive
+checkpoint behavior remain unchanged.
+
+The alternatives considered were trusting device/inode/size alone (shown to
+skip records after truncation/refill), trusting buffered seek/read (shown to
+return stale bytes), and replaying the active file on every run (unnecessary
+duplicate traffic and capacity pressure). The bounded anchor plus full
+pending-batch checks reduce observable skips without adding a dependency or
+changing transport. They add local reads and cannot detect every concurrent
+rewrite. Legacy nonzero active checkpoints replay from zero; malformed state
+fails explicitly. Replayed ACKed records rely on receiver deduplication and
+may encounter its storage limit.
+
+Rollback to the older collector would ignore continuity metadata and restore
+the silent-skip risk. An operator must review the checkpoint and arrange a
+safe active-file replay/reset and receiver capacity before any rollback;
+neither state editing nor live rollback was performed during M3.3.
+
 ## Proposed product ADRs — not approved
 
 The following are decision records to write and review before the corresponding implementation. They do not supersede the historical laboratory decisions above. Each ADR should record the selected option, alternatives, tradeoffs, security impact, evidence, owner, and reversal path. The maturity gates are in [Product Roadmap](product/PRODUCT_ROADMAP.md).

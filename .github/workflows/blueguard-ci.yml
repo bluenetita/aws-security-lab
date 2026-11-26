@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'applications/blueguard-api/**'
+      - 'blue-team/zeek/libexec/**'
+      - 'infrastructure/blueguard-pipeline/**'
+      - 'tests/host_pipeline/**'
       - '.github/workflows/blueguard-ci.yml'
       - 'scripts/source_manifest.py'
       - 'MANIFEST.sha256'
@@ -12,6 +15,9 @@ on:
     branches: [main, chore/sync-blueguard-v0.4.2, chore/consolidate-blueguard-rc4]
     paths:
       - 'applications/blueguard-api/**'
+      - 'blue-team/zeek/libexec/**'
+      - 'infrastructure/blueguard-pipeline/**'
+      - 'tests/host_pipeline/**'
       - '.github/workflows/blueguard-ci.yml'
       - 'scripts/source_manifest.py'
       - 'MANIFEST.sha256'
@@ -38,6 +44,14 @@ jobs:
 
       - name: Verify source manifest
         run: python3 scripts/source_manifest.py --check
+
+      - name: Run host pipeline regression suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 -B -m unittest discover -s tests/host_pipeline -p 'test_*.py' -v 2>&1 | tee "$RUNNER_TEMP/blueguard-host-tests.log"
+          grep -Eq '^Ran [1-9][0-9]* tests? in ' "$RUNNER_TEMP/blueguard-host-tests.log"
 
       - name: Check runner tools
         shell: bash

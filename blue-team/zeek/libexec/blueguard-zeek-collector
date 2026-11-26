@@ -3,13 +3,15 @@
 
 Sends only complete JSONL lines; commits state after verified receiver ACKs.
 Archived gzip files are processed with per-file line checkpoints; the current
-file is tracked by device, inode and byte offset. The receiver remains the
-authority for deduplication. Requires no third-party Python modules.
+file is tracked by device, inode, byte offset and bounded continuity evidence.
+The receiver remains the authority for deduplication. Requires no third-party
+Python modules.
 """
 import argparse
 import datetime as dt
 import fcntl
 import gzip
+import hashlib
 import json
 import os
 import re
@@ -22,8 +24,10 @@ MAX_LINE = 65536
 BATCH_BYTES = 128 * 1024
 BATCH_RECORDS = 100
 MAX_LINES_PER_RUN = 2000
+CONTINUITY_BYTES = 4096
 ACK = re.compile(r"^OK new=(\d+) duplicates=(\d+) total=(\d+)\s*$")
 DATE_DIR = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
 SSH = [
     "/usr/bin/ssh", "-T", "-i", "/var/lib/blueguard-sender/.ssh/id_ed25519",
     "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
@@ -67,12 +71,62 @@ def read_state(path):
     if not path.exists():
         return {"version": 1, "archives": {}, "active": None}
     raw = json.loads(path.read_text(encoding="utf-8"))
-    if (not isinstance(raw, dict) or raw.get("version") != 1
+    if (not isinstance(raw, dict) or type(raw.get("version")) is not int
+            or raw["version"] != 1 or "active" not in raw
             or not isinstance(raw.get("archives"), dict)
             or (raw.get("active") is not None and
                 not isinstance(raw.get("active"), dict))):
         raise ValueError("Invalid sender state file (manual intervention required)")
+    active = raw.get("active")
+    if active is not None:
+        if (set(active) not in ({"dev", "ino", "offset"},
+                                {"dev", "ino", "offset", "continuity"})
+                or any(type(active[key]) is not int or active[key] < 0
+                       for key in ("dev", "ino", "offset"))):
+            raise ValueError("Invalid active sender checkpoint")
+        if "continuity" in active:
+            evidence = active["continuity"]
+            offset = active["offset"]
+            if (not isinstance(evidence, dict)
+                    or set(evidence) != {"offset", "window_bytes", "sha256"}
+                    or type(evidence["offset"]) is not int
+                    or evidence["offset"] != offset
+                    or type(evidence["window_bytes"]) is not int
+                    or evidence["window_bytes"] != min(offset, CONTINUITY_BYTES)
+                    or not isinstance(evidence["sha256"], str)
+                    or not SHA256.fullmatch(evidence["sha256"])):
+                raise ValueError("Invalid active continuity checkpoint")
     return raw
+
+
+def continuity(offset, tail):
+    """Bind a bounded prefix sample to the exact committed byte offset."""
+    if len(tail) != min(offset, CONTINUITY_BYTES):
+        raise ValueError("Invalid active continuity window")
+    return {
+        "offset": offset,
+        "window_bytes": len(tail),
+        "sha256": hashlib.sha256(tail).hexdigest(),
+    }
+
+
+def read_window(stream, offset, length):
+    """Read fresh bytes from the opened inode, bypassing Python read-ahead."""
+    return os.pread(stream.fileno(), length, offset - length)
+
+
+def hash_range(stream, start, end):
+    """Hash all processed bytes with bounded positional reads."""
+    digest = hashlib.sha256()
+    position = start
+    while position < end:
+        size = min(CONTINUITY_BYTES, end - position)
+        chunk = os.pread(stream.fileno(), size, position)
+        if len(chunk) != size:
+            raise RuntimeError("Active conn.log continuity changed during collection")
+        digest.update(chunk)
+        position += size
+    return digest.digest()
 
 
 def send_batch(payload, num_lines):
@@ -118,11 +172,15 @@ class Collector:
             raise ValueError(f"Expected JSON object in {file_name}")
         return True
 
-    def send_lines(self, lines, commit):
+    def send_lines(self, lines, commit, after_ack=None):
         if not lines:
+            if after_ack is not None:
+                after_ack()
             commit()
             return
         self.sender(b"".join(lines), len(lines))
+        if after_ack is not None:
+            after_ack()
         commit()  # State advances ONLY after validated remote ACK.
         self.sent += len(lines)
 
@@ -181,41 +239,88 @@ class Collector:
     def process_current(self):
         path = self.root / "current" / "conn.log"
         try:
-            with path.open("rb") as stream:
-                st = os.fstat(stream.fileno())
-                existing = self.state.get("active")
-                if (not isinstance(existing, dict) or existing.get("dev") != st.st_dev
-                        or existing.get("ino") != st.st_ino or existing.get("offset", 0) > st.st_size):
-                    existing = {"dev": st.st_dev, "ino": st.st_ino, "offset": 0}
-                stream.seek(existing["offset"])
-                batch, size, count = [], 0, 0
-                checkpoint = stream.tell()
-                while count < MAX_LINES_PER_RUN:
-                    line = stream.readline(MAX_LINE + 1)
-                    if not line:
-                        break
-                    if not line.endswith(b"\n"):
-                        # Writer may be in the middle of a JSON line.
-                        if len(line) > MAX_LINE:
-                            raise ValueError("Oversized current Zeek line")
-                        break
-                    meaningful = self.safe_line(line, str(path))
-                    if meaningful and (size + len(line) > BATCH_BYTES or len(batch) >= BATCH_RECORDS):
-                        self.send_lines(batch, lambda pos=checkpoint:
-                                        self.commit_current(existing, pos))
-                        batch, size = [], 0
-                    checkpoint = stream.tell()
-                    if meaningful:
-                        batch.append(line)
-                        size += len(line)
-                    count += 1
-                self.send_lines(batch, lambda pos=checkpoint:
-                                self.commit_current(existing, pos))
+            stream = path.open("rb")
         except FileNotFoundError:
             print("Current conn.log absent (not an error)")
+            return
 
-    def commit_current(self, entry, offset):
+        with stream:
+            st = os.fstat(stream.fileno())
+            existing = self.state.get("active")
+            if (existing is None or existing["dev"] != st.st_dev
+                    or existing["ino"] != st.st_ino):
+                existing = {"dev": st.st_dev, "ino": st.st_ino, "offset": 0}
+                tail = b""
+            elif existing["offset"] > st.st_size:
+                print("Active conn.log shrank; replaying from offset 0", file=sys.stderr)
+                existing = {"dev": st.st_dev, "ino": st.st_ino, "offset": 0}
+                tail = b""
+            elif "continuity" not in existing:
+                if existing["offset"]:
+                    print("Legacy active checkpoint; replaying from offset 0", file=sys.stderr)
+                existing = {"dev": st.st_dev, "ino": st.st_ino, "offset": 0}
+                tail = b""
+            else:
+                offset = existing["offset"]
+                length = existing["continuity"]["window_bytes"]
+                tail = read_window(stream, offset, length)
+                if hashlib.sha256(tail).hexdigest() != existing["continuity"]["sha256"]:
+                    print("Active conn.log continuity changed; replaying from offset 0", file=sys.stderr)
+                    existing = {"dev": st.st_dev, "ino": st.st_ino, "offset": 0}
+                    tail = b""
+
+            stream.seek(existing["offset"])
+            batch, size, count = [], 0, 0
+            checkpoint = stream.tell()
+            batch_start = checkpoint
+            batch_hash = hashlib.sha256()
+            committed_offset = checkpoint
+            committed_tail = tail
+
+            def verify_processed(offset, start, digest):
+                info = os.fstat(stream.fileno())
+                if (info.st_dev != st.st_dev or info.st_ino != st.st_ino
+                        or info.st_size < offset
+                        or read_window(stream, committed_offset, len(committed_tail)) != committed_tail
+                        or hash_range(stream, start, offset) != digest):
+                    raise RuntimeError("Active conn.log continuity changed during collection")
+
+            def deliver(offset, start, digest, sample):
+                nonlocal committed_offset, committed_tail
+                check = lambda: verify_processed(offset, start, digest)
+                check()
+                self.send_lines(batch, lambda: self.commit_current(existing, offset, sample),
+                                after_ack=check)
+                # Advance the anchor only after the checkpoint was persisted.
+                committed_offset, committed_tail = offset, sample
+
+            while count < MAX_LINES_PER_RUN:
+                line = stream.readline(MAX_LINE + 1)
+                if not line:
+                    break
+                if not line.endswith(b"\n"):
+                    # Writer may be in the middle of a JSON line.
+                    if len(line) > MAX_LINE:
+                        raise ValueError("Oversized current Zeek line")
+                    break
+                meaningful = self.safe_line(line, str(path))
+                if meaningful and (size + len(line) > BATCH_BYTES or len(batch) >= BATCH_RECORDS):
+                    deliver(checkpoint, batch_start, batch_hash.digest(), tail)
+                    batch, size = [], 0
+                    batch_start = checkpoint
+                    batch_hash = hashlib.sha256()
+                checkpoint = stream.tell()
+                tail = (tail + line)[-CONTINUITY_BYTES:]
+                batch_hash.update(line)
+                if meaningful:
+                    batch.append(line)
+                    size += len(line)
+                count += 1
+            deliver(checkpoint, batch_start, batch_hash.digest(), tail)
+
+    def commit_current(self, entry, offset, tail):
         entry["offset"] = offset
+        entry["continuity"] = continuity(offset, tail)
         self.state["active"] = entry
         self.save()
 

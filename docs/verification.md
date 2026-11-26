@@ -47,6 +47,43 @@ validate later documentation changes, the recovered host pipeline or Zeek
 policies, reproducible provisioning, bit-for-bit image reproducibility, or a
 fresh end-to-end AWS trace.
 
+## M3.3 host pipeline source verification (26 November 2026)
+
+The project owner reports that prior BlueGuard CI run #5 succeeded (36-second
+workflow, 32-second job) on the previously published baseline. Its logs were
+not independently inspected here, and it did not run the new host suite.
+The edited workflow adds that suite on `ubuntu-24.04` after the manifest check,
+with path filters for host sources and tests. Remote CI validation of this
+revision remains pending.
+
+From the repository root, the local standard-library suite ran with:
+
+```text
+wsl --exec python3 -B -m unittest discover -s tests/host_pipeline -p 'test_*.py' -v
+```
+
+The fresh M3.3f WSL Python 3.12.3 run recorded **41 tests passed** in
+**0.405 seconds**, zero failures and zero expected failures; the earlier
+M3.3e run passed in 0.383 seconds. Tests use synthetic JSONL, temporary
+directories and mocked transport; they do not verify live SSH, root-owned
+service paths, systemd operation, Zeek policy loading, or an end-to-end trace.
+The project owner separately reports independent collector testing of
+**21/21 passed** on Linux Python 3.13.5 and five additional passing boundary
+experiments. Those checks overlap the local suite and are not an additive
+test count. Local YAML parsing and Bash syntax checks passed; independent
+synthetic checks of the CI step's success, failure and zero-test behavior were
+reported by the project owner.
+
+The tests reproduce and guard against BG-BUG-001 (truncation/refill skips),
+BG-BUG-002 (masked `FileNotFoundError`), BG-BUG-001a (buffered continuity
+reads), and BG-BUG-001b (lost continuity evidence during multi-batch ACKs).
+The collector uses a persisted 4096-byte SHA-256 anchor and checks all bytes
+read for the pending batch before delivery and after ACK. A failed post-ACK
+check leaves the last persisted checkpoint in place; the receiver may have
+accepted the batch, so recovery replays it and depends on deduplication.
+These source-level checks do not establish exactly-once delivery or complete
+capture. See [architecture](architecture.md) and [limitations](limitations.md).
+
 ## Kubernetes checks (Control Plane)
 
 Read-only commands to execute on the **Control Plane EC2**, after confirming the VM is running:

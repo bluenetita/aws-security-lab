@@ -51,6 +51,29 @@ Worker (source ENI) ---------------- TCP/18080 ----------------> Control Plane
 
 The traffic-mirror session must exist for the Zeek instance to observe the selected Worker ENI traffic. The original network connection is not routed through Zeek.
 
+## Collector continuity (M3.3 local source)
+
+The pending M3.3 collector source extends the version-1 active checkpoint with
+`continuity: {offset, window_bytes, sha256}`. The digest covers up to 4096
+bytes immediately before the committed offset; device and inode checks and
+archive line checkpoints remain. On an existing nonzero active checkpoint
+without continuity evidence, the collector replays the active file from byte
+zero. Archive checkpoints are preserved. A changed active fingerprint also
+causes replay from zero, while malformed checkpoint metadata is rejected.
+
+For each pending batch, the collector hashes all bytes it read, including
+blank lines, and retains the preceding committed anchor separately. Fresh
+`os.pread` calls on the opened descriptor verify the anchor and pending batch
+before delivery and after a receiver ACK, before atomic checkpoint
+persistence. Short reads or observable rewrites abort with a diagnostic that
+does not include event content. Only opening a missing active log is benign;
+transport and persistence `FileNotFoundError` failures propagate. An ACK
+followed by a failed check or save can cause replay; the receiver remains the
+deduplication authority. Normal file append does not invalidate the already
+read prefix. This is a locally tested source change, not evidence of a new
+deployment or guaranteed delivery. See [decision record](decisions.md) and
+[verification](verification.md).
+
 ## Kubernetes resources
 
 | Resource | Observed configuration |
